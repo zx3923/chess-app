@@ -21,7 +21,6 @@ export default function Login() {
             name="email"
             type="email"
             placeholder="이메일"
-            defaultValue={state?.formData?.email || ""}
             errors={state?.fieldErrors.email}
           />
           <Input
@@ -30,7 +29,7 @@ export default function Login() {
             placeholder="비밀번호"
             errors={state?.fieldErrors.password}
           />
-          <Button text="가입하기" />
+          <Button text="로그인" />
         </form>
         <div className="text-center space-y-2">
           <Link

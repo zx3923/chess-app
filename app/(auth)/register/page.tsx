@@ -21,7 +21,7 @@ export default function Register() {
             name="userName"
             type="text"
             placeholder="유저명"
-            defaultValue={state?.formData?.userName || ""}
+            // defaultValue={state?.formData?.userName || ""}
             // required
             // minLength={PASSWORD_MIN_LENGTH}
             // maxLength={10}
@@ -31,7 +31,7 @@ export default function Register() {
             name="email"
             type="email"
             placeholder="이메일"
-            defaultValue={state?.formData?.email || ""}
+            // defaultValue={state?.formData?.email || ""}
             // required
             errors={state?.fieldErrors.email}
           />

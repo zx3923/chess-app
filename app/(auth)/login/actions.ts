@@ -49,6 +49,8 @@ const formSchema = z.object({
 });
 
 export async function logIn(prevState: any, formData: FormData) {
+  console.log(prevState);
+  console.log(formData);
   const data = {
     email: formData.get("email"),
     password: formData.get("password"),
