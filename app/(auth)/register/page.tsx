@@ -9,9 +9,6 @@ import { ChatBubbleOvalLeftEllipsisIcon } from "@heroicons/react/24/solid";
 
 export default function Register() {
   const [state, action] = useActionState(createAccount, null);
-  const handleClick = () => {
-    window.location.href = "/github/start";
-  };
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-neutral-900 to-neutral-800 text-neutral-200 p-4">
       <div className="max-w-md w-full space-y-8 bg-neutral-800 p-8 rounded-xl shadow-lg">
@@ -79,7 +76,6 @@ export default function Register() {
               </svg>
               <span>깃허브로 계속하기</span>
             </Link>
-            <button onClick={handleClick}>ㄹ</button>
             <Link
               className="flex justify-center gap-2 bg-blue-600 py-2 px-4 border border-transparent text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-offset-2 focus:ring-blue-500"
               href="/sms"

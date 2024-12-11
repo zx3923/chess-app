@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   });
   if (user) {
     await successLogin(user.id);
-    return redirect("/");
+    return redirect("/profile");
   }
 
   const isExist = await isExistUsername(name);
@@ -51,5 +51,5 @@ export async function GET(request: NextRequest) {
     },
   });
   await successLogin(newUser.id);
-  redirect("/");
+  redirect("/profile");
 }

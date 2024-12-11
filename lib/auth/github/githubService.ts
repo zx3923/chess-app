@@ -1,9 +1,11 @@
 export async function getAccessToken(code: string) {
   let accessTokenURL = "https://github.com/login/oauth/access_token";
+  // console.log(process.env.GITHUB_CLIENT_ID!);
+  // console.log(process.env.GITHUB_CLIENT_SECRET!);
 
   const accessTokenParams = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID!,
-    client_secret: process.env.GITHUB_CLIENT_SECRET_KEY!,
+    client_secret: process.env.GITHUB_CLIENT_SECRET!,
     code: code,
   }).toString();
 
@@ -58,9 +60,11 @@ export async function getGithubPropfile(
   });
   const profile = await userProfileResponse.json();
 
+  console.log(profile);
+
   return {
     id: profile.id,
-    name: profile.name,
+    name: profile.login,
     avatar_url: profile.avatar_url,
   };
 }

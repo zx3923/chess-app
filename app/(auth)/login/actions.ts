@@ -78,7 +78,7 @@ export async function logIn(prevState: any, formData: FormData) {
     );
     if (ok) {
       await successLogin(user!.id);
-      redirect("/");
+      redirect("/profile");
     } else {
       return {
         fieldErrors: {
