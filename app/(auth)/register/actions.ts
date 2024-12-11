@@ -9,7 +9,7 @@ import db from "@/lib/db";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { redirect } from "next/navigation";
-import { successLogin } from "@/lib/session";
+import { successLogin } from "@/lib/session/session";
 
 const checkPasswords = ({
   password,

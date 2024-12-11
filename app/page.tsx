@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSession } from "@/lib/session";
+import { getSession } from "@/lib/session/session";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
@@ -26,8 +26,7 @@ export default async function Home() {
         <div className="space-y-4">
           <Link
             href="/chess"
-            className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-neutral-100 rounded-lg text-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-            aria-label="게임 시작"
+            className="block text-center w-full px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-neutral-100 rounded-lg text-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
           >
             게임 시작
           </Link>
