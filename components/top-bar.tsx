@@ -1,24 +1,33 @@
 "use client";
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 export default function TopBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const checkSession = async () => {
+    const response = await fetch("/api/oauth");
+    const data = await response.json();
+    setIsLoggedIn(data);
+  };
+
   useEffect(() => {
-    const fetchSession = async () => {
-      const res = await fetch("/api/oauth");
-      const data = await res.json();
-      console.log(data);
-      setIsLoggedIn(data);
-    };
-    fetchSession();
-  }, []);
+    checkSession();
+  }, [checkSession, isLoggedIn, setIsLoggedIn]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const hanldeLogout = async () => {
+    const response = await fetch("/api/logout");
+    console.log(response);
+    if (response.ok) {
+      redirect("/");
+    }
   };
 
   return (
@@ -55,7 +64,10 @@ export default function TopBar() {
           <div className="hidden md:block">
             <div className="ml-4 flex items-center md:ml-6">
               {isLoggedIn ? (
-                <button className="bg-neutral-700 p-1 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-800 focus:ring-white">
+                <Link
+                  href="/profile"
+                  className="bg-neutral-700 p-1 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-800 focus:ring-white"
+                >
                   <span className="sr-only">View profile</span>
                   <svg
                     className="h-6 w-6"
@@ -72,7 +84,7 @@ export default function TopBar() {
                       d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                </button>
+                </Link>
               ) : (
                 <Link
                   href="/login"
@@ -151,9 +163,16 @@ export default function TopBar() {
             >
               랜덤 매칭
             </Link>
-            {!isLoggedIn && (
+            {isLoggedIn ? (
+              <button
+                onClick={hanldeLogout}
+                className="text-gray-300 hover:bg-neutral-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+              >
+                로그아웃
+              </button>
+            ) : (
               <Link
-                href="/"
+                href="/login"
                 className="text-gray-300 hover:bg-neutral-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
               >
                 로그인
