@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { redirect } from "next/navigation";
 // import { matchStart } from "./action";
 import { socket } from "@/lib/socket";
-import { v4 as uuidv4 } from "uuid";
+import { useRouter } from "next/navigation";
 
 interface MessageLog {
   room: string;
@@ -19,6 +20,8 @@ export default function Game() {
   const [logs, setLogs] = useState<String[]>([]);
   const [message, setMessage] = useState("");
   const [users, setUsers] = useState<String[]>([]);
+  const [orientation, setOrientation] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     function onConnect() {
@@ -72,32 +75,61 @@ export default function Game() {
     setMessage("");
   };
 
+  const onClickCreateBtn = () => {
+    socket.emit("createRoom", (r: any) => {
+      console.log(r);
+    });
+  };
+
+  const handleRedirect = (orientation: string, roomId: string) => {
+    router.push(`/chess?orientation=${orientation}&room=${roomId}`);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-900 text-neutral-200 p-4">
-      {/* <div>
-        <form action={action}>
+      <div>
+        {/* <form action={action}>
           <select name="gamemode">
             <option value="rapid">래피드</option>
             <option value="blitz">블리츠</option>
             <option value="bullet">불릿</option>
           </select>
           <button className="bg-blue-500 px-6 py-2 rounded-sm">매칭</button>
-        </form>
-        <button
-          className="bg-blue-500 px-6 py-2 rounded-sm"
-          onClick={() => {
-            console.log(socket);
-            socket.emit("createRoom", (r: any) => {
-              console.log(r);
-            });
-          }}
-        >
-          생성
-        </button>
-      </div> */}
+        </form> */}
+        <div className="flex gap-5">
+          <button
+            className="bg-blue-500 px-6 py-2 rounded-sm"
+            onClick={() => {
+              socket.emit("createRoom", (r: any) => {
+                console.log(r);
+                // setOrientation("white");
+                handleRedirect("white", r);
+              });
+            }}
+          >
+            생성
+          </button>
+          <button
+            className="bg-blue-500 px-6 py-2 rounded-sm"
+            onClick={() => {
+              socket.emit(
+                "joinRoom",
+                { roomId: "8636356b-7841-41d2-803e-a7a057432653" },
+                (r: any) => {
+                  console.log(r);
+                  // setOrientation("baclk");
+                  handleRedirect("black", r.roomId);
+                }
+              );
+            }}
+          >
+            참가
+          </button>
+        </div>
+      </div>
       <p>Status: {isConnected ? "connected" : "disconnected"}</p>
       <p>Transport: {transport}</p>
-      <div>
+      {/* <div>
         <h3>닉네임</h3>
         <input
           type="text"
@@ -105,8 +137,8 @@ export default function Game() {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-      </div>
-      <div>
+      </div> */}
+      {/* <div>
         <h3>메시지</h3>
         <input
           className="text-black"
@@ -116,8 +148,8 @@ export default function Game() {
         <button type="submit" onClick={onClickSubmitBtn}>
           전송
         </button>
-      </div>
-      <div className="bg-white text-black w-full">
+      </div> */}
+      {/* <div className="bg-white text-black w-full">
         <div className="bg-white">
           <h3>채팅 로그</h3>
           {logs && logs.map((log) => <p key={uuidv4()}>{log}</p>)}
@@ -127,7 +159,7 @@ export default function Game() {
           <h3>접속 유저</h3>
           {users && users.map((user) => <p key={uuidv4()}>{user}</p>)}
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
