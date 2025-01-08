@@ -1,10 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { redirect } from "next/navigation";
-// import { matchStart } from "./action";
+import { useEffect, useState } from "react";
 import { socket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
+import { User } from "@prisma/client";
 
 interface MessageLog {
   room: string;
@@ -13,8 +12,8 @@ interface MessageLog {
 }
 
 export default function Game() {
-  // const [state, action] = useActionState(matchStart, null);
   const [name, setName] = useState("");
+  const [user, setUser] = useState<User | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [transport, setTransport] = useState("N/A");
   const [logs, setLogs] = useState<String[]>([]);
@@ -24,71 +23,86 @@ export default function Game() {
   const router = useRouter();
 
   useEffect(() => {
-    function onConnect() {
-      setIsConnected(true);
-      setTransport(socket.io.engine.transport.name);
-
-      socket.io.engine.on("upgrade", (transport) => {
-        setTransport(transport.name);
-      });
-    }
-
-    if (socket.connected) {
-      onConnect();
-      socket.emit("joinAndLeave", { type: "join", name });
-    }
-
-    function onDisconnect() {
-      setIsConnected(false);
-      setTransport("N/A");
-    }
-
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-
-    function onSetLog(msg: MessageLog | string) {
-      if (typeof msg === "string") {
-        setLogs((prev) => [...prev, msg]);
+    console.log("getuser start");
+    const fetchUserData = async () => {
+      const response = await fetch("/api/getUser");
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
       } else {
-        setLogs((prev) => [...prev, `${msg.name}의 말 : ${msg.message}`]);
+        console.error("User not authenticated");
       }
-    }
-
-    socket.on("chat message", onSetLog);
-
-    function onUsers(inputUsers: { id: string; name: string }[]) {
-      console.log({ inputUsers });
-      setUsers(inputUsers.map((inputUser) => inputUser.name));
-    }
-    socket.on("users", onUsers);
-
-    return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("chat message", onSetLog);
-      socket.off("users", onUsers);
     };
-  }, [name]);
+    fetchUserData();
+  }, []);
 
-  const onClickSubmitBtn = () => {
-    socket.emit("chat message", { room: "room1", message, name });
-    setMessage("");
-  };
+  // useEffect(() => {
+  //   function onConnect() {
+  //     setIsConnected(true);
+  //     setTransport(socket.io.engine.transport.name);
+
+  //     socket.io.engine.on("upgrade", (transport) => {
+  //       setTransport(transport.name);
+  //     });
+  //   }
+
+  //   if (socket.connected) {
+  //     onConnect();
+  //     socket.emit("joinAndLeave", { type: "join", name });
+  //   }
+
+  //   function onDisconnect() {
+  //     setIsConnected(false);
+  //     setTransport("N/A");
+  //   }
+
+  //   socket.on("connect", onConnect);
+  //   socket.on("disconnect", onDisconnect);
+
+  //   function onSetLog(msg: MessageLog | string) {
+  //     if (typeof msg === "string") {
+  //       setLogs((prev) => [...prev, msg]);
+  //     } else {
+  //       setLogs((prev) => [...prev, `${msg.name}의 말 : ${msg.message}`]);
+  //     }
+  //   }
+
+  //   socket.on("chat message", onSetLog);
+
+  //   function onUsers(inputUsers: { id: string; name: string }[]) {
+  //     console.log({ inputUsers });
+  //     setUsers(inputUsers.map((inputUser) => inputUser.name));
+  //   }
+  //   socket.on("users", onUsers);
+
+  //   return () => {
+  //     socket.off("connect", onConnect);
+  //     socket.off("disconnect", onDisconnect);
+  //     socket.off("chat message", onSetLog);
+  //     socket.off("users", onUsers);
+  //   };
+  // }, [name]);
+
+  // const onClickSubmitBtn = () => {
+  //   socket.emit("chat message", { room: "room1", message, name });
+  //   setMessage("");
+  // };
 
   const onClickCreateBtn = () => {
-    socket.emit("createRoom", (r: any) => {
+    socket.emit("createRoom", { username: "test" }, (r: any) => {
       console.log(r);
     });
   };
 
   const handleRedirect = (orientation: string, roomId: string) => {
+    console.log("?");
     router.push(`/chess?orientation=${orientation}&room=${roomId}`);
   };
-
+  console.log(user);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-900 text-neutral-200 p-4">
       <div>
-        {/* <form action={action}>
+        {/* <form action={test}>
           <select name="gamemode">
             <option value="rapid">래피드</option>
             <option value="blitz">블리츠</option>
@@ -100,11 +114,15 @@ export default function Game() {
           <button
             className="bg-blue-500 px-6 py-2 rounded-sm"
             onClick={() => {
-              socket.emit("createRoom", (r: any) => {
-                console.log(r);
-                // setOrientation("white");
-                handleRedirect("white", r);
-              });
+              socket.emit(
+                "createRoom",
+                { username: user?.user_name },
+                (r: any) => {
+                  console.log(r);
+                  // setOrientation("white");
+                  handleRedirect("white", r);
+                }
+              );
             }}
           >
             생성
@@ -112,23 +130,32 @@ export default function Game() {
           <button
             className="bg-blue-500 px-6 py-2 rounded-sm"
             onClick={() => {
-              socket.emit(
-                "joinRoom",
-                { roomId: "8636356b-7841-41d2-803e-a7a057432653" },
-                (r: any) => {
-                  console.log(r);
-                  // setOrientation("baclk");
-                  handleRedirect("black", r.roomId);
-                }
-              );
+              const roomId = prompt("Enter the room ID:");
+              console.log(roomId);
+              if (roomId) {
+                socket.emit(
+                  "joinRoom",
+                  {
+                    roomId: roomId,
+                    username: user?.user_name,
+                  },
+                  (r: any) => {
+                    console.log(r);
+                    // setOrientation("black");
+                    handleRedirect("black", r.roomId);
+                  }
+                );
+              } else {
+                console.log("Room ID is required.");
+              }
             }}
           >
             참가
           </button>
         </div>
       </div>
-      <p>Status: {isConnected ? "connected" : "disconnected"}</p>
-      <p>Transport: {transport}</p>
+      {/* <p>Status: {isConnected ? "connected" : "disconnected"}</p>
+      <p>Transport: {transport}</p> */}
       {/* <div>
         <h3>닉네임</h3>
         <input

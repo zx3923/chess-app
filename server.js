@@ -58,36 +58,36 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on("createRoom", async (callback) => {
+    socket.on("createRoom", async ({ username }, callback) => {
       console.log("create room");
+      console.log(username);
       const roomId = uuidv4();
       await socket.join(roomId);
 
       rooms.set(roomId, {
         roomId,
-        player: [{ id: socket.id, username: socket.data?.username }],
+        player: [{ id: socket.id, username }],
       });
-
       callback(roomId);
     });
 
-    socket.on("joinRoom", async (args, callback) => {
+    socket.on("joinRoom", async ({ roomId, username }, callback) => {
       console.log("join test");
-      const room = rooms.get(args.roomId);
+      const room = rooms.get(roomId);
       console.log(room);
 
       let error, message;
 
       if (!room) {
-        // 방이없다면
+        // 방이 없으면
         error = true;
         message = "방이존재하지않습니다.";
-      } else if (room.length <= 0) {
-        // 방이비어있다면
+      } else if (room.player.length <= 0) {
+        // 방이 비어있으면
         error = true;
         message = "방이비어있습니다.";
-      } else if (room.length >= 2) {
-        // 방이차있다면
+      } else if (room.player.length >= 2) {
+        // 방이 꽉 차 있으면
         error = true;
         message = "방이꽉차있습니다.";
       }
@@ -103,22 +103,20 @@ app.prepare().then(() => {
         return;
       }
 
-      await socket.join(args.roomId); //방참가
+      await socket.join(roomId); //방참가
+      console.log(room);
 
       const roomUpdate = {
         ...room,
-        players: [
-          ...room.player,
-          { id: socket.id, username: socket.data?.username },
-        ],
+        player: [...room.player, { id: socket.id, username }],
       };
 
-      rooms.set(args.roomId, roomUpdate);
+      rooms.set(roomId, roomUpdate);
 
       callback(roomUpdate);
 
       // 상대방이 참여했음을 알리는 "opponentJoined" 이벤트 전송
-      socket.to(args.roomId).emit("opponentJoined", roomUpdate);
+      socket.to(roomId).emit("opponentJoined", roomUpdate);
     });
 
     socket.on("move", (data) => {

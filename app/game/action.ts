@@ -22,5 +22,6 @@ export async function matchStart(prevState: any, formData: FormData) {
   // console.log("end");
 
   // await addToQueue(userInfo?.id!, gamemode, userInfo?.rating);
+
   return 1;
 }
