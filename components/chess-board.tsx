@@ -13,10 +13,9 @@ export default function ChessGame() {
   const room = searchParams.get("room");
   const orientation = searchParams.get("orientation");
 
-  console.log(room, orientation);
-
   const makeAMove = useCallback(
     (move: any) => {
+      console.log("check move");
       try {
         const result = chess.move(move); // chess 업데이트
         setFen(chess.fen()); // fen 상태를 업데이트하여 리렌더링
@@ -84,7 +83,7 @@ export default function ChessGame() {
         <Chessboard
           position={fen}
           onPieceDrop={onDrop}
-          boardOrientation={"white"}
+          boardOrientation={orientation === "white" ? "white" : "black"}
           boardWidth={600}
         />
       </div>

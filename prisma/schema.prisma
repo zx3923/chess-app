@@ -23,32 +23,7 @@ model User {
   avatar     String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  rating     Int      @default(1200)
-
-  matchQueue MatchQueue? // User와 매칭 큐의 1:1 관계
-  gamesAsPlayer1 Game[]  @relation("Player1Games") // 유저가 Player1인 게임
-  gamesAsPlayer2 Game[]  @relation("Player2Games") // 유저가 Player2인 게임
-}
-
-model MatchQueue {
-  id        String   @id @default(cuid())
-  userId    Int      @unique
-  mode      String   
-  rating    Int      
-  timestamp DateTime @default(now()) 
-  is_active Boolean  @default(true)
-
-  user User @relation(fields: [userId], references: [id])
-}
-
-model Game {
-  id        String   @id @default(cuid())
-  player1Id Int      
-  player2Id Int      
-  mode      String   
-  result    String?  
-  timestamp DateTime @default(now())
-
-  player1 User @relation("Player1Games", fields: [player1Id], references: [id])
-  player2 User @relation("Player2Games", fields: [player2Id], references: [id])
+  rapidRating     Int      @default(1200)
+  blitzRating     Int      @default(1200)
+  bulletRating     Int      @default(1200)
 }

@@ -12,14 +12,15 @@ interface MessageLog {
 }
 
 export default function Game() {
-  const [name, setName] = useState("");
+  // const [name, setName] = useState("");
   const [user, setUser] = useState<User | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [transport, setTransport] = useState("N/A");
-  const [logs, setLogs] = useState<String[]>([]);
-  const [message, setMessage] = useState("");
-  const [users, setUsers] = useState<String[]>([]);
-  const [orientation, setOrientation] = useState("");
+  const [gameMode, setGameMode] = useState("rapid");
+  // const [isConnected, setIsConnected] = useState(false);
+  // const [transport, setTransport] = useState("N/A");
+  // const [logs, setLogs] = useState<String[]>([]);
+  // const [message, setMessage] = useState("");
+  // const [users, setUsers] = useState<String[]>([]);
+  // const [orientation, setOrientation] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -35,6 +36,21 @@ export default function Game() {
     };
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("matchFound", (data) => {
+        console.log("#@!#@!#@!#@!@#!#!@#@!@!#");
+        console.log(data);
+        handleRedirect(data.color, data.roomId);
+      });
+    }
+    return () => {
+      if (socket) {
+        socket.off("matchFound");
+      }
+    };
+  }, [socket]);
 
   // useEffect(() => {
   //   function onConnect() {
@@ -95,28 +111,50 @@ export default function Game() {
   };
 
   const handleRedirect = (orientation: string, roomId: string) => {
-    console.log("?");
     router.push(`/chess?orientation=${orientation}&room=${roomId}`);
   };
-  console.log(user);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setGameMode(e.target.value);
+  };
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-900 text-neutral-200 p-4">
       <div>
-        {/* <form action={test}>
-          <select name="gamemode">
+        <form>
+          <select name="gamemode" onChange={handleChange}>
             <option value="rapid">래피드</option>
             <option value="blitz">블리츠</option>
             <option value="bullet">불릿</option>
           </select>
-          <button className="bg-blue-500 px-6 py-2 rounded-sm">매칭</button>
-        </form> */}
+          {/* <button className="bg-blue-500 px-6 py-2 rounded-sm">매칭</button> */}
+        </form>
         <div className="flex gap-5">
+          <button
+            className="bg-blue-500 px-6 py-2 rounded-sm"
+            onClick={() => {
+              // socket.emit(
+              //   "createRoom",
+              //   { username: user?.user_name, rating: user?.rating },
+              //   (r: any) => {
+              //     console.log(r);
+              //     // setOrientation("white");
+              //     handleRedirect("white", r);
+              //   }
+              // );
+              socket.emit("joinQueue", {
+                user: user,
+                gameMode: gameMode,
+              });
+            }}
+          >
+            매칭
+          </button>
           <button
             className="bg-blue-500 px-6 py-2 rounded-sm"
             onClick={() => {
               socket.emit(
                 "createRoom",
-                { username: user?.user_name },
+                { username: user?.user_name, rating: user?.rapidRating },
                 (r: any) => {
                   console.log(r);
                   // setOrientation("white");
