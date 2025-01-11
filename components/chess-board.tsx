@@ -1,8 +1,9 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
 import { Chess } from "chess.js";
-import { Chessboard } from "react-chessboard";
 import { socket } from "@/lib/socket";
+import { Chessboard } from "react-chessboard";
 import { useSearchParams } from "next/navigation";
+import { useState, useMemo, useCallback, useEffect } from "react";
+
 import "./chess-board.css";
 
 export default function ChessGame() {
@@ -12,6 +13,13 @@ export default function ChessGame() {
   const searchParams = useSearchParams();
   const room = searchParams.get("room");
   const orientation = searchParams.get("orientation");
+
+  useEffect(() => {
+    socket.on("playerDisconnected", (player) => {
+      console.log(player.username);
+      setOver(`${player.username} has disconnected`);
+    });
+  }, []);
 
   const makeAMove = useCallback(
     (move: any) => {

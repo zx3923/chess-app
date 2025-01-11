@@ -19,51 +19,9 @@ app.prepare().then(() => {
   const httpServer = createServer(handler);
 
   const io = new Server(httpServer);
-  // let users = {};
-
-  // function getUsersArray() {
-  //   return Object.keys(users).map((id) => ({ id, nickname: users[id] }));
-  // }
 
   io.on("connection", (socket) => {
-    // ...
     console.log("a user connected");
-    /**
-     * msg는 {type:string, nickName:string}
-     */
-    // socket.on("joinAndLeave", (msg) => {
-    //   console.log("joinAndLeave", msg.type, msg.nickName);
-    //   if (msg.type === "join" && !users[socket.id]) {
-    //     io.emit("chat message", `${msg.nickName}님이 입장하셨습니다.`);
-    //     users[socket.id] = msg.nickName;
-    //   }
-    // else if (msg.type === 'leave') {
-    //   io.emit('chat message', `${msg.nickName}님이 퇴장하셨습니다.`)
-    //   users = users.filter((user) => user !== msg.nickName);
-
-    // }
-
-    //   io.emit("users", getUsersArray());
-    // });
-
-    // socket.on("chat message", (msg) => {
-    //   console.log("message: " + msg.message);
-    //   io.emit("chat message", msg);
-    // });
-
-    // 매칭요청
-    // socket.on("joinQueue", ({ user, gameMode }) => {
-    //   if (gameMode === "rapid") {
-    //     waitingRapid.push({ socketId: socket.id, ...user });
-    //     tryToMatch(waitingRapid, gameMode, io);
-    //   } else if (gameMode === "blitz") {
-    //     waitingBlitz.push({ socketId: socket.id, ...user });
-    //     tryToMatch(waitingBlitz, gameMode, io);
-    //   } else if (gameMode === "bullet") {
-    //     waitingBullet.push({ socketId: socket.id, ...user });
-    //     tryToMatch(waitingBullet, gameMode, io);
-    //   }
-    // });
     // 매칭 요청
     socket.on("joinQueue", ({ user, gameMode }) => {
       let matchFound = false;
@@ -83,7 +41,7 @@ app.prepare().then(() => {
           // 방에 참가
           io.to(player1.socketId).socketsJoin(roomId); // player1 방 참가
           io.to(player2.socketId).socketsJoin(roomId); // player2 방 참가
-          // socket.join(roomId);
+
           rooms.set(roomId, {
             roomId,
             players: [
@@ -98,6 +56,7 @@ app.prepare().then(() => {
             color: player1Color,
             roomId: roomId,
           });
+
           io.to(player2.socketId).emit("matchFound", {
             opponent: player1,
             color: player2Color,
@@ -119,7 +78,7 @@ app.prepare().then(() => {
           // 방에 참가
           io.to(player1.socketId).socketsJoin(roomId); // player1 방 참가
           io.to(player2.socketId).socketsJoin(roomId); // player2 방 참가
-          // socket.join(roomId);
+
           rooms.set(roomId, {
             roomId,
             players: [
@@ -134,6 +93,7 @@ app.prepare().then(() => {
             color: player1Color,
             roomId: roomId,
           });
+
           io.to(player2.socketId).emit("matchFound", {
             opponent: player1,
             color: player2Color,
@@ -155,7 +115,7 @@ app.prepare().then(() => {
           // 방에 참가
           io.to(player1.socketId).socketsJoin(roomId); // player1 방 참가
           io.to(player2.socketId).socketsJoin(roomId); // player2 방 참가
-          // socket.join(roomId);
+
           rooms.set(roomId, {
             roomId,
             players: [
@@ -170,6 +130,7 @@ app.prepare().then(() => {
             color: player1Color,
             roomId: roomId,
           });
+
           io.to(player2.socketId).emit("matchFound", {
             opponent: player1,
             color: player2Color,
@@ -183,82 +144,78 @@ app.prepare().then(() => {
       }
     });
 
-    socket.on("createRoom", async ({ username, rating }, callback) => {
-      console.log("create room");
-      console.log(rating);
-      const roomId = uuidv4();
-      await socket.join(roomId);
+    // socket.on("createRoom", async ({ username, rating }, callback) => {
+    //   console.log("create room");
+    //   console.log(rating);
+    //   const roomId = uuidv4();
+    //   await socket.join(roomId);
 
-      rooms.set(roomId, {
-        roomId,
-        players: [{ id: socket.id, username }],
-      });
-      callback(roomId);
-    });
+    //   rooms.set(roomId, {
+    //     roomId,
+    //     players: [{ id: socket.id, username }],
+    //   });
+    //   callback(roomId);
+    // });
 
-    socket.on("joinRoom", async ({ roomId, username }, callback) => {
-      console.log("join test");
-      const room = rooms.get(roomId);
-      console.log(room);
+    // socket.on("joinRoom", async ({ roomId, username }, callback) => {
+    //   console.log("join test");
+    //   const room = rooms.get(roomId);
+    //   console.log(room);
 
-      let error, message;
+    //   let error, message;
 
-      if (!room) {
-        // 방이 없으면
-        error = true;
-        message = "방이존재하지않습니다.";
-      } else if (room.players.length <= 0) {
-        // 방이 비어있으면
-        error = true;
-        message = "방이비어있습니다.";
-      } else if (room.players.length >= 2) {
-        // 방이 꽉 차 있으면
-        error = true;
-        message = "방이꽉차있습니다.";
-      }
+    //   if (!room) {
+    //     // 방이 없으면
+    //     error = true;
+    //     message = "방이존재하지않습니다.";
+    //   } else if (room.players.length <= 0) {
+    //     // 방이 비어있으면
+    //     error = true;
+    //     message = "방이비어있습니다.";
+    //   } else if (room.players.length >= 2) {
+    //     // 방이 꽉 차 있으면
+    //     error = true;
+    //     message = "방이꽉차있습니다.";
+    //   }
 
-      if (error) {
-        if (callback) {
-          callback({
-            error,
-            message,
-          });
-        }
+    //   if (error) {
+    //     if (callback) {
+    //       callback({
+    //         error,
+    //         message,
+    //       });
+    //     }
 
-        return;
-      }
+    //     return;
+    //   }
 
-      await socket.join(roomId); //방참가
-      console.log(room);
+    //   await socket.join(roomId); //방참가
+    //   console.log(room);
 
-      const roomUpdate = {
-        ...room,
-        players: [...room.players, { id: socket.id, username }],
-      };
+    //   const roomUpdate = {
+    //     ...room,
+    //     players: [...room.players, { id: socket.id, username }],
+    //   };
 
-      rooms.set(roomId, roomUpdate);
+    //   rooms.set(roomId, roomUpdate);
 
-      callback(roomUpdate);
+    //   callback(roomUpdate);
 
-      // 상대방이 참여했음을 알리는 "opponentJoined" 이벤트 전송
-      socket.to(roomId).emit("opponentJoined", roomUpdate);
-    });
+    //   // 상대방이 참여했음을 알리는 "opponentJoined" 이벤트 전송
+    //   socket.to(roomId).emit("opponentJoined", roomUpdate);
+    // });
 
+    // 체스말 움직임
     socket.on("move", (data) => {
-      console.log("data 확인");
-      console.log(data);
-      console.log(rooms);
-      console.log(rooms.get(data.room));
+      console.log("data : ", data);
       socket.to(data.room).emit("move", data.move);
     });
 
     socket.on("disconnect", () => {
       console.log("user disconnected");
       const gameRooms = Array.from(rooms.values());
-      console.log(gameRooms);
       gameRooms.forEach((room) => {
-        console.log("!!!");
-        console.log(room);
+        console.log("disconnect room : ", room);
         const userInRoom = room.players.find(
           (player) => player.id === socket.id
         );
