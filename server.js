@@ -11,9 +11,14 @@ const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 
 const rooms = new Map();
-const waitingRapid = [];
-const waitingBlitz = [];
-const waitingBullet = [];
+// const waitingRapid = [];
+// const waitingBlitz = [];
+// const waitingBullet = [];
+const waitingQueues = {
+  rapid: [],
+  blitz: [],
+  bullet: [],
+};
 
 app.prepare().then(() => {
   const httpServer = createServer(handler);
@@ -24,123 +29,180 @@ app.prepare().then(() => {
     console.log("a user connected");
     // 매칭 요청
     socket.on("joinQueue", ({ user, gameMode }) => {
-      let matchFound = false;
-
-      if (gameMode === "rapid") {
-        waitingRapid.push({ socketId: socket.id, ...user });
-        const match = tryToMatch(waitingRapid, gameMode);
-        if (match) {
-          const { player1, player2 } = match;
-          matchFound = true;
-
-          const player1Color = Math.random() < 0.5 ? "white" : "black";
-          const player2Color = player1Color === "white" ? "black" : "white";
-
-          const roomId = uuidv4();
-
-          // 방에 참가
-          io.to(player1.socketId).socketsJoin(roomId); // player1 방 참가
-          io.to(player2.socketId).socketsJoin(roomId); // player2 방 참가
-
-          rooms.set(roomId, {
-            roomId,
-            players: [
-              { id: player1.socketId, username: user.user_name },
-              { id: player2.socketId, username: user.user_name },
-            ],
-          });
-
-          // 매칭 이벤트 전송
-          io.to(player1.socketId).emit("matchFound", {
-            opponent: player2,
-            color: player1Color,
-            roomId: roomId,
-          });
-
-          io.to(player2.socketId).emit("matchFound", {
-            opponent: player1,
-            color: player2Color,
-            roomId: roomId,
-          });
-        }
-      } else if (gameMode === "blitz") {
-        waitingBlitz.push({ socketId: socket.id, ...user });
-        const match = tryToMatch(waitingBlitz, gameMode);
-        if (match) {
-          const { player1, player2 } = match;
-          matchFound = true;
-
-          const player1Color = Math.random() < 0.5 ? "white" : "black";
-          const player2Color = player1Color === "white" ? "black" : "white";
-
-          const roomId = uuidv4();
-
-          // 방에 참가
-          io.to(player1.socketId).socketsJoin(roomId); // player1 방 참가
-          io.to(player2.socketId).socketsJoin(roomId); // player2 방 참가
-
-          rooms.set(roomId, {
-            roomId,
-            players: [
-              { id: player1.socketId, username: user.user_name },
-              { id: player2.socketId, username: user.user_name },
-            ],
-          });
-
-          // 매칭 이벤트 전송
-          io.to(player1.socketId).emit("matchFound", {
-            opponent: player2,
-            color: player1Color,
-            roomId: roomId,
-          });
-
-          io.to(player2.socketId).emit("matchFound", {
-            opponent: player1,
-            color: player2Color,
-            roomId: roomId,
-          });
-        }
-      } else if (gameMode === "bullet") {
-        waitingBullet.push({ socketId: socket.id, ...user });
-        const match = tryToMatch(waitingBullet, gameMode);
-        if (match) {
-          const { player1, player2 } = match;
-          matchFound = true;
-
-          const player1Color = Math.random() < 0.5 ? "white" : "black";
-          const player2Color = player1Color === "white" ? "black" : "white";
-
-          const roomId = uuidv4();
-
-          // 방에 참가
-          io.to(player1.socketId).socketsJoin(roomId); // player1 방 참가
-          io.to(player2.socketId).socketsJoin(roomId); // player2 방 참가
-
-          rooms.set(roomId, {
-            roomId,
-            players: [
-              { id: player1.socketId, username: user.user_name },
-              { id: player2.socketId, username: user.user_name },
-            ],
-          });
-
-          // 매칭 이벤트 전송
-          io.to(player1.socketId).emit("matchFound", {
-            opponent: player2,
-            color: player1Color,
-            roomId: roomId,
-          });
-
-          io.to(player2.socketId).emit("matchFound", {
-            opponent: player1,
-            color: player2Color,
-            roomId: roomId,
-          });
-        }
+      if (!waitingQueues[gameMode]) {
+        console.error(`Invalid game mode: ${gameMode}`);
+        return;
       }
 
-      if (!matchFound) {
-        console.log("매칭 실패, 대기열에 추가되었습니다.");
+      waitingQueues[gameMode].push({ socketId: socket.id, ...user });
+      const match = tryToMatch(waitingQueues[gameMode], gameMode);
+
+      if (match) {
+        const { player1, player2 } = match;
+        const player1Color = Math.random() < 0.5 ? "white" : "black";
+        const player2Color = player1Color === "white" ? "black" : "white";
+        const roomId = uuidv4();
+
+        [player1, player2].forEach((player) =>
+          io.to(player.socketId).socketsJoin(roomId)
+        );
+
+        rooms.set(roomId, {
+          roomId,
+          players: [
+            { id: player1.socketId, username: player1.username },
+            { id: player2.socketId, username: player2.username },
+          ],
+        });
+
+        io.to(player1.socketId).emit("matchFound", {
+          opponent: player2,
+          color: player1Color,
+          roomId,
+        });
+
+        io.to(player2.socketId).emit("matchFound", {
+          opponent: player1,
+          color: player2Color,
+          roomId,
+        });
+      } else {
+        console.log("No match found, added to queue");
+      }
+
+      // let matchFound = false;
+
+      // if (gameMode === "rapid") {
+      //   waitingRapid.push({ socketId: socket.id, ...user });
+      //   const match = tryToMatch(waitingRapid, gameMode);
+      //   if (match) {
+      //     const { player1, player2 } = match;
+      //     matchFound = true;
+
+      //     const player1Color = Math.random() < 0.5 ? "white" : "black";
+      //     const player2Color = player1Color === "white" ? "black" : "white";
+
+      //     const roomId = uuidv4();
+
+      //     // 방에 참가
+      //     io.to(player1.socketId).socketsJoin(roomId); // player1 방 참가
+      //     io.to(player2.socketId).socketsJoin(roomId); // player2 방 참가
+
+      //     rooms.set(roomId, {
+      //       roomId,
+      //       players: [
+      //         { id: player1.socketId, username: user.user_name },
+      //         { id: player2.socketId, username: user.user_name },
+      //       ],
+      //     });
+
+      //     // 매칭 이벤트 전송
+      //     io.to(player1.socketId).emit("matchFound", {
+      //       opponent: player2,
+      //       color: player1Color,
+      //       roomId: roomId,
+      //     });
+
+      //     io.to(player2.socketId).emit("matchFound", {
+      //       opponent: player1,
+      //       color: player2Color,
+      //       roomId: roomId,
+      //     });
+      //   }
+      // } else if (gameMode === "blitz") {
+      //   waitingBlitz.push({ socketId: socket.id, ...user });
+      //   const match = tryToMatch(waitingBlitz, gameMode);
+      //   if (match) {
+      //     const { player1, player2 } = match;
+      //     matchFound = true;
+
+      //     const player1Color = Math.random() < 0.5 ? "white" : "black";
+      //     const player2Color = player1Color === "white" ? "black" : "white";
+
+      //     const roomId = uuidv4();
+
+      //     // 방에 참가
+      //     io.to(player1.socketId).socketsJoin(roomId); // player1 방 참가
+      //     io.to(player2.socketId).socketsJoin(roomId); // player2 방 참가
+
+      //     rooms.set(roomId, {
+      //       roomId,
+      //       players: [
+      //         { id: player1.socketId, username: user.user_name },
+      //         { id: player2.socketId, username: user.user_name },
+      //       ],
+      //     });
+
+      //     // 매칭 이벤트 전송
+      //     io.to(player1.socketId).emit("matchFound", {
+      //       opponent: player2,
+      //       color: player1Color,
+      //       roomId: roomId,
+      //     });
+
+      //     io.to(player2.socketId).emit("matchFound", {
+      //       opponent: player1,
+      //       color: player2Color,
+      //       roomId: roomId,
+      //     });
+      //   }
+      // } else if (gameMode === "bullet") {
+      //   waitingBullet.push({ socketId: socket.id, ...user });
+      //   const match = tryToMatch(waitingBullet, gameMode);
+      //   if (match) {
+      //     const { player1, player2 } = match;
+      //     matchFound = true;
+
+      //     const player1Color = Math.random() < 0.5 ? "white" : "black";
+      //     const player2Color = player1Color === "white" ? "black" : "white";
+
+      //     const roomId = uuidv4();
+
+      //     // 방에 참가
+      //     io.to(player1.socketId).socketsJoin(roomId); // player1 방 참가
+      //     io.to(player2.socketId).socketsJoin(roomId); // player2 방 참가
+
+      //     rooms.set(roomId, {
+      //       roomId,
+      //       players: [
+      //         { id: player1.socketId, username: user.user_name },
+      //         { id: player2.socketId, username: user.user_name },
+      //       ],
+      //     });
+
+      //     // 매칭 이벤트 전송
+      //     io.to(player1.socketId).emit("matchFound", {
+      //       opponent: player2,
+      //       color: player1Color,
+      //       roomId: roomId,
+      //     });
+
+      //     io.to(player2.socketId).emit("matchFound", {
+      //       opponent: player1,
+      //       color: player2Color,
+      //       roomId: roomId,
+      //     });
+      //   }
+      // }
+
+      // if (!matchFound) {
+      //   console.log("매칭 실패, 대기열에 추가되었습니다.");
+      // }
+    });
+
+    // 매칭 취소
+    socket.on("cancelRequest", (gameMode) => {
+      if (!waitingQueues[gameMode]) {
+        console.error(`Invalid game mode: ${gameMode}`);
+        return;
+      }
+
+      const index = waitingQueues[gameMode].findIndex(
+        (player) => player.socketId === socket.id
+      );
+      if (index !== -1) {
+        waitingQueues[gameMode].splice(index, 1);
+        console.log(`User removed from ${gameMode} queue`);
       }
     });
 
