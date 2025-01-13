@@ -14,12 +14,60 @@ export default function ChessGame() {
   const room = searchParams.get("room");
   const orientation = searchParams.get("orientation");
 
+  const [timers, setTimers] = useState({ white: 0, black: 0 });
+
   useEffect(() => {
-    socket.on("playerDisconnected", (player) => {
-      console.log(player.username);
-      setOver(`${player.username} has disconnected`);
+    // 서버에서 초기 타이머 설정 요청
+    if (room) {
+      socket.emit("getTimers", room, ({ timers }: any) => {
+        if (timers) {
+          console.log("get timers", timers);
+          setTimers(timers);
+        } else {
+          setOver("Failed to fetch timers");
+        }
+      });
+    }
+
+    // 서버로부터 타이머 업데이트를 수신
+    const interval = setInterval(() => {
+      if (room) {
+        socket.emit("getTimers", room, ({ timers }: any) => {
+          if (timers) {
+            setTimers(timers);
+          }
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [room]);
+
+  function onDrop(sourceSquare: any, targetSquare: any) {
+    console.log(chess.turn());
+    console.log(orientation![0]);
+    if (chess.turn() !== orientation![0]) return false; // w, b 를 확인하여 본인 말만 움직이게
+
+    // if (players.length < 2) return false;
+
+    const moveData = {
+      from: sourceSquare,
+      to: targetSquare,
+      color: chess.turn(),
+      promotion: "q",
+    };
+
+    const move = makeAMove(moveData);
+
+    if (move === null) return false; // null 은 정상적이지 않은 움직임
+
+    socket.emit("move", {
+      move,
+      room,
     });
-  }, []);
+
+    return true;
+  }
 
   const makeAMove = useCallback(
     (move: any) => {
@@ -59,30 +107,23 @@ export default function ChessGame() {
     });
   }, [makeAMove]);
 
-  function onDrop(sourceSquare: any, targetSquare: any) {
-    console.log(chess.turn());
-    console.log(orientation![0]);
-    if (chess.turn() !== orientation![0]) return false; // w, b 를 확인하여 본인 말만 움직이게
-
-    // if (players.length < 2) return false;
-
-    const moveData = {
-      from: sourceSquare,
-      to: targetSquare,
-      color: chess.turn(),
-      promotion: "q",
-    };
-
-    const move = makeAMove(moveData);
-
-    if (move === null) return false; // null 은 정상적이지 않은 움직임
-
-    socket.emit("move", {
-      move,
-      room,
+  useEffect(() => {
+    socket.on("playerDisconnected", (player) => {
+      console.log(player.username);
+      setOver(`${player.username} has disconnected`);
     });
+  }, []);
 
-    return true;
+  useEffect(() => {
+    socket.on("gameOver", (data) => {
+      console.log(data);
+    });
+  }, []);
+
+  function formatTime(seconds: number) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   }
 
   return (
@@ -94,6 +135,10 @@ export default function ChessGame() {
           boardOrientation={orientation === "white" ? "white" : "black"}
           boardWidth={600}
         />
+        <div className="text-white">
+          <div>White: {formatTime(timers.white)}</div>
+          <div>Black: {formatTime(timers.black)}</div>
+        </div>
       </div>
     </>
   );

@@ -5,7 +5,6 @@ import { socket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MatchingComponent } from "@/components/MatchingComponent";
-import { emit } from "process";
 
 export default function Game() {
   const [gameMode, setGameMode] = useState("rapid");
@@ -42,12 +41,6 @@ export default function Game() {
     };
   }, [socket]);
 
-  // const onClickCreateBtn = () => {
-  //   socket.emit("createRoom", { username: "test" }, (r: any) => {
-  //     console.log(r);
-  //   });
-  // };
-
   const handleRedirect = (orientation: string, roomId: string) => {
     router.push(`/chess?orientation=${orientation}&room=${roomId}`);
   };
@@ -62,7 +55,7 @@ export default function Game() {
   const cancelMatching = () => {
     setIsMatching(false);
     console.log(gameMode);
-    socket.emit("cancelRequest", gameMode);
+    socket.emit("cancelMatching", gameMode);
   };
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-900 text-neutral-200 p-4">
