@@ -34,6 +34,17 @@ export default function ChessGame() {
       if (room) {
         socket.emit("getTimers", room, ({ timers }: any) => {
           if (timers) {
+            console.log(timers.white);
+            console.log(timers.black);
+            if (timers.white === 0) {
+              console.log("black win");
+              setOver("black win");
+              if (interval) clearInterval(interval); // interval 종료
+            } else if (timers.black === 0) {
+              console.log("white win");
+              setOver("white win");
+              if (interval) clearInterval(interval); // interval 종료
+            }
             setTimers(timers);
           }
         });
