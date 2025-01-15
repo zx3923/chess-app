@@ -34,13 +34,11 @@ export default function ChessGame() {
       if (room) {
         socket.emit("getTimers", room, ({ timers }: any) => {
           if (timers) {
-            console.log(timers.white);
-            console.log(timers.black);
-            if (timers.white === 0) {
+            if (timers.white <= 0) {
               console.log("black win");
               setOver("black win");
               if (interval) clearInterval(interval); // interval 종료
-            } else if (timers.black === 0) {
+            } else if (timers.black <= 0) {
               console.log("white win");
               setOver("white win");
               if (interval) clearInterval(interval); // interval 종료
@@ -49,7 +47,7 @@ export default function ChessGame() {
           }
         });
       }
-    }, 1000);
+    }, 200);
 
     return () => clearInterval(interval);
   }, [room]);
@@ -132,9 +130,20 @@ export default function ChessGame() {
   }, []);
 
   function formatTime(seconds: number) {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+    if (seconds >= 20) {
+      // 20초 이상은 mm:ss 형식
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+    } else {
+      // 20초 미만은 m:ss.xx 형식
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      const ms = Math.floor((seconds % 1) * 100); // 소수점 이하 두 자리
+      return `${mins}:${secs < 10 ? "0" : ""}${secs}.${
+        ms < 10 ? "0" : ""
+      }${ms}`;
+    }
   }
 
   return (

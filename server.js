@@ -113,7 +113,7 @@ app.prepare().then(() => {
 
       const now = Date.now();
       console.log(now);
-      const elapsedTime = Math.floor((now - room.lastMoveTime) / 1000); // 경과 시간 (초 단위)
+      const elapsedTime = (now - room.lastMoveTime) / 1000; // 경과 시간 (초 단위)
       console.log(elapsedTime);
       room.timers[room.currentTurn] -= elapsedTime; // 현재 턴의 타이머 감소
 
@@ -137,9 +137,18 @@ app.prepare().then(() => {
       if (!room) return callback({ error: "Room not found" });
 
       const now = Date.now();
-      const elapsedTime = Math.floor((now - room.lastMoveTime) / 1000); // 경과 시간 (초 단위)
+      const elapsedTime = (now - room.lastMoveTime) / 1000; // 경과 시간 (초 단위)
       const timers = { ...room.timers };
       timers[room.currentTurn] -= elapsedTime;
+
+      if (room.timers[room.currentTurn] <= 0) {
+        io.to(room.roomId).emit("gameOver", {
+          winner: room.currentTurn === "white" ? "black" : "white",
+          reason: "timeout",
+        });
+        // rooms.delete(room.roomId);
+        return;
+      }
 
       callback({ timers });
     });
