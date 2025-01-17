@@ -12,19 +12,34 @@ export default function ChessGame() {
   const [over, setOver] = useState("");
   const searchParams = useSearchParams();
   const room = searchParams.get("room");
-  const orientation = searchParams.get("orientation");
 
+  const [userColor, setUserColor] = useState("");
   const [timers, setTimers] = useState({ white: 0, black: 0 });
 
   useEffect(() => {
     // 서버에서 초기 타이머 설정 요청
     if (room) {
-      socket.emit("getTimers", room, ({ timers }: any) => {
-        if (timers) {
-          console.log("get timers", timers);
-          setTimers(timers);
+      socket.emit("getRoomInfo", room, (room: any) => {
+        if (room) {
+          console.log("getRoomInfo", room);
+          setTimers(room.timers);
+
+          const fetchUserData = async () => {
+            const response = await fetch("/api/getUser");
+            if (response.ok) {
+              const userData = await response.json();
+              if (userData.user_name === room.players[0].username) {
+                setUserColor(room.players[0].color);
+              } else {
+                setUserColor(room.players[1].color);
+              }
+            } else {
+              console.error("User not authenticated");
+            }
+          };
+          fetchUserData();
         } else {
-          setOver("Failed to fetch timers");
+          setOver("Failed to fetch room");
         }
       });
     }
@@ -54,8 +69,8 @@ export default function ChessGame() {
 
   function onDrop(sourceSquare: any, targetSquare: any) {
     console.log(chess.turn());
-    console.log(orientation![0]);
-    if (chess.turn() !== orientation![0]) return false; // w, b 를 확인하여 본인 말만 움직이게
+    console.log(userColor);
+    if (chess.turn() !== userColor[0]) return false; // w, b 를 확인하여 본인 말만 움직이게
 
     // if (players.length < 2) return false;
 
@@ -148,17 +163,36 @@ export default function ChessGame() {
 
   return (
     <>
-      <div className="custom-chessboard flex items-center h-screen bg-neutral-900">
-        <Chessboard
-          position={fen}
-          onPieceDrop={onDrop}
-          boardOrientation={orientation === "white" ? "white" : "black"}
-          boardWidth={600}
-        />
+      <div className="flex items-center justify-center flex-col h-screen bg-neutral-900">
         <div className="text-white">
+          {userColor === "white" ? "black" : "white"}
+          <div>
+            {userColor === "black"
+              ? formatTime(timers.white)
+              : formatTime(timers.black)}
+          </div>
+        </div>
+        <div className="w-full max-w-[500px]">
+          <Chessboard
+            position={fen}
+            onPieceDrop={onDrop}
+            boardOrientation={userColor === "white" ? "white" : "black"}
+            // boardWidth={boardWidth}
+          />
+        </div>
+
+        <div className="text-white">
+          {userColor}
+          <div>
+            {userColor === "white"
+              ? formatTime(timers.white)
+              : formatTime(timers.black)}
+          </div>
+        </div>
+        {/* <div className="text-white">
           <div>White: {formatTime(timers.white)}</div>
           <div>Black: {formatTime(timers.black)}</div>
-        </div>
+        </div> */}
       </div>
     </>
   );

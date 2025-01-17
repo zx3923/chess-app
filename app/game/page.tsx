@@ -31,7 +31,7 @@ export default function Game() {
     if (socket) {
       socket.on("matchFound", (data) => {
         console.log("data : ", data);
-        handleRedirect(data.color, data.roomId);
+        handleRedirect(data.roomId);
       });
     }
     return () => {
@@ -41,8 +41,8 @@ export default function Game() {
     };
   }, [socket]);
 
-  const handleRedirect = (orientation: string, roomId: string) => {
-    router.push(`/chess?orientation=${orientation}&room=${roomId}`);
+  const handleRedirect = (roomId: string) => {
+    router.push(`/chess?room=${roomId}`);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -54,7 +54,6 @@ export default function Game() {
 
   const cancelMatching = () => {
     setIsMatching(false);
-    console.log(gameMode);
     socket.emit("cancelMatching", gameMode);
   };
   return (

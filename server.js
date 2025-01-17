@@ -53,12 +53,12 @@ app.prepare().then(() => {
           players: [
             {
               id: player1.socketId,
-              username: player1.username,
+              username: player1.user_name,
               color: player1Color,
             },
             {
               id: player2.socketId,
-              username: player2.username,
+              username: player2.user_name,
               color: player2Color,
             },
           ],
@@ -130,6 +130,13 @@ app.prepare().then(() => {
       room.currentTurn = room.currentTurn === "white" ? "black" : "white";
 
       socket.to(data.room).emit("move", data.move);
+    });
+
+    socket.on("getRoomInfo", (roomId, callback) => {
+      const room = rooms.get(roomId);
+      if (!room) return callback({ error: "Room not found" });
+
+      callback(room);
     });
 
     socket.on("getTimers", (roomId, callback) => {
