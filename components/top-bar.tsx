@@ -65,7 +65,7 @@ export default function TopBar() {
             <div className="ml-4 flex items-center md:ml-6">
               {isLoggedIn ? (
                 <Link
-                  href="/profile"
+                  href="/home"
                   className="bg-neutral-700 p-1 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-800 focus:ring-white"
                 >
                   <span className="sr-only">View profile</span>

@@ -18,7 +18,7 @@ async function getUser() {
   notFound();
 }
 
-export default async function Profile() {
+export default async function Home() {
   const user = await getUser();
   const logOut = async () => {
     "use server";

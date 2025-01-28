@@ -23,9 +23,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   } else {
-    // 로그인 경우 공용 url 진입시 /profile 로 보냄
+    // 로그인 경우 공용 url 진입시 /home 로 보냄
     if (exists) {
-      return NextResponse.redirect(new URL("/profile", request.url));
+      return NextResponse.redirect(new URL("/home", request.url));
     }
   }
 }
