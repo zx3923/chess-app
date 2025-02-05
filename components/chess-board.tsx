@@ -163,7 +163,7 @@ export default function ChessGame() {
 
   return (
     <>
-      <div className="flex items-center justify-center flex-col h-screen bg-neutral-900">
+      <div className="flex items-center justify-center flex-col h-screen bg-gradient-to-br from-neutral-900 to-neutral-800">
         <div className="text-white">
           {userColor === "white" ? "black" : "white"}
           <div>

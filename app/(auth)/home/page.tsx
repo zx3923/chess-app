@@ -27,14 +27,25 @@ export default async function Home() {
     redirect("/");
   };
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-900 text-neutral-200 p-4">
-      <div className="w-full max-w-md bg-neutral-800 shadow-md rounded px-8 pt-6 pb-8 mb-4">
-        <h1 className="text-3xl font-bold mb-4 text-center">
-          어서오세요 {user.user_name} 님
-        </h1>
-        <div className="mb-6">
-          <p className="text-lg mb-2">이메일: {user.email}</p>
-          {/* <p className="text-lg mb-2">이름: {user.lastName}{user.firstName}</p> */}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-neutral-900 to-neutral-800 text-neutral-200 p-4">
+      <div className="w-full min-w-96 max-w-screen-lg bg-neutral-800 shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        <div className="flex justify-between">
+          <div className="flex gap-4">
+            <div>아바타</div>
+            <div>{user.user_name}</div>
+            <div>{user.email}</div>
+          </div>
+          <div className="flex gap-4">
+            <div>친구아이콘</div>
+            <div>메세지아이콘</div>
+            <div>설정아이콘</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          <div className="border px-4 py-2 mx-auto">새 게임</div>
+          <div className="border px-4 py-2 mx-auto">친구와 플레이</div>
+          <div className="border px-4 py-2 mx-auto">일반게임</div>
+          <div className="border px-4 py-2 mx-auto">방만들기</div>
         </div>
         <div className="flex flex-col space-y-4">
           <Link
