@@ -105,7 +105,7 @@ app.prepare().then(() => {
 
     // 체스말 움직임
     socket.on("move", (data) => {
-      // console.log("data : ", data);
+      console.log("data : ", data);
 
       const room = rooms.get(data.room);
       if (!room) return;
