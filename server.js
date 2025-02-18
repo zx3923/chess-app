@@ -2,7 +2,6 @@ import { createServer } from "node:http";
 import next from "next";
 import { Server } from "socket.io";
 import { v4 as uuidv4 } from "uuid";
-import { loadEngine } from "./loadEngine.js";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -107,16 +106,6 @@ app.prepare().then(() => {
     // 체스말 움직임
     socket.on("move", (data) => {
       console.log("data : ", data);
-
-      stockfishEngine.postMessage("position fen " + data.moveTest);
-      stockfishEngine.postMessage("go depth 10");
-      stockfishEngine.onmessage = (event) => {
-        const message = event.data;
-        if (message.includes("bestmove")) {
-          const bestMove = message.split(" ")[1];
-          socket.emit("bestMove", bestMove);
-        }
-      };
 
       const room = rooms.get(data.room);
       if (!room) return;
@@ -266,32 +255,3 @@ function getInitialTime(gameMode) {
       throw new Error(`Unknown game mode: ${gameMode}`);
   }
 }
-const engine = loadEngine();
-
-// 엔진 준비
-engine.onmessage = (data) => {
-  console.log("Engine Message: ", data);
-
-  data = data + "";
-
-  if (data.startsWith("bestmove")) {
-    const bestMove = data.split(" ")[1];
-    console.log("최적의 수: ", bestMove);
-  }
-
-  if (data === "uciok") {
-    console.log("Engine Initialized!");
-    engine.postMessage("isready");
-  }
-
-  if (data === "readyok") {
-    console.log("Engine is Ready!");
-    engine.postMessage("ucinewgame");
-    const fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    engine.postMessage(`position fen ${fen}`);
-    engine.postMessage("go movetime 1000");
-  }
-};
-
-// 엔진 초기화 요청
-engine.postMessage("uci");

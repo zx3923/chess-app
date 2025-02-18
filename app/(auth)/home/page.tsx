@@ -38,7 +38,9 @@ export default async function Home() {
           <div className="flex items-center gap-4">
             <button className="p-2 rounded hover:bg-neutral-600">친구</button>
             <button className="p-2 rounded hover:bg-neutral-600">메세지</button>
-            <button className="p-2 rounded hover:bg-neutral-600">설정</button>
+            <Link href="/settings" className="p-2 rounded hover:bg-neutral-600">
+              설정
+            </Link>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -55,14 +57,14 @@ export default async function Home() {
             방만들기
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <Link
+        <div className="flex justify-end">
+          {/* <Link
             href="/edit-profile"
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline text-center"
           >
             계정 / 정보 관리
-          </Link>
-          <form action={logOut} className="flex justify-center">
+          </Link> */}
+          <form action={logOut} className="flex justify-center w-24">
             <button className="w-full bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
               로그아웃
             </button>
