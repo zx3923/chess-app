@@ -1,13 +1,14 @@
 "use server";
+
 import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_REGEX,
   PASSWORD_REGEX_ERROR,
 } from "@/lib/constants";
 import db from "@/lib/db";
+import { getSession } from "@/lib/session/session";
 import { z } from "zod";
 import bcrypt from "bcrypt";
-import { successLogin } from "@/lib/session/session";
 import { redirect } from "next/navigation";
 
 const checkEmailExists = async (email: string) => {
@@ -24,7 +25,7 @@ const checkEmailExists = async (email: string) => {
   // } else {
   //   return false
   // }
-  return Boolean(user);
+  return !Boolean(user);
 };
 
 const formSchema = z.object({
@@ -37,22 +38,22 @@ const formSchema = z.object({
     .refine((email) => {
       const isValidEmail = z.string().email().safeParse(email).success;
       if (!isValidEmail) {
-        return true; // 이메일 형식이 잘못된 경우 다음 검증을 스킵.
+        return true;
       }
-      // 이메일이 유효한 형식일 경우에만 존재유무 검증 실행
       return checkEmailExists(email);
-    }, "존재하지 않는 이메일 입니다."),
+    }, "이미 존재하는 이메일 입니다."),
   password: z
     .string()
     .min(PASSWORD_MIN_LENGTH, "비밀번호는 6자 이상입니다.")
     .regex(PASSWORD_REGEX, PASSWORD_REGEX_ERROR),
 });
 
-export async function logIn(prevState: any, formData: FormData) {
+export async function changeEmail(prevState: any, formData: FormData) {
   const data = {
     email: formData.get("email"),
     password: formData.get("password"),
   };
+  const session = await getSession();
   const result = await formSchema.spa(data);
 
   if (!result.success) {
@@ -63,7 +64,7 @@ export async function logIn(prevState: any, formData: FormData) {
   } else {
     const user = await db.user.findUnique({
       where: {
-        email: result.data.email,
+        id: session.id,
       },
       select: {
         id: true,
@@ -72,11 +73,18 @@ export async function logIn(prevState: any, formData: FormData) {
     });
     const ok = await bcrypt.compare(
       result.data.password,
-      user!.password ?? "XXXX"
+      user?.password ?? "XXXX"
     );
     if (ok) {
-      await successLogin(user!.id);
-      redirect("/home");
+      const user = await db.user.update({
+        where: {
+          id: session.id,
+        },
+        data: {
+          email: result.data.email,
+        },
+      });
+      redirect("/settings");
     } else {
       return {
         fieldErrors: {

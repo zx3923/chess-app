@@ -29,7 +29,7 @@ export default async function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-neutral-900 to-neutral-800 text-neutral-200 p-4">
       <div className="w-full min-w-96 max-w-screen-lg bg-neutral-800 shadow-md rounded px-8 pt-6 pb-8 mb-4">
-        <div className="flex justify-between">
+        <div className="flex justify-between mb-4">
           <div className="flex items-center gap-4">
             <div>아바타</div>
             <div className="text-lg font-semibold">{user.user_name}</div>
