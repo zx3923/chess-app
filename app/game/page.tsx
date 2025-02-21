@@ -14,7 +14,7 @@ export default function Game() {
   const router = useRouter();
 
   useEffect(() => {
-    console.log("getUser start");
+    // console.log("getUser start");
     const fetchUserData = async () => {
       const response = await fetch("/api/getUser");
       if (response.ok) {
