@@ -61,6 +61,7 @@ export default function ChessGame() {
 
   // 체스말움직임
   function onDrop(sourceSquare: any, targetSquare: any) {
+    console.log(game.getCurrentPlayer());
     if (game.getCurrentPlayer() !== userColor) return false;
     const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
     if (game.makeMove(moveData)) {
@@ -107,20 +108,20 @@ export default function ChessGame() {
       game.play();
     }
   }, [game]);
+  // 컴퓨터 모드일 때 타이머, 게임 자동시작, api 엔진을 통해 계산된 수 반영하는것 고민하기
 
-  // 게임 모드 선택 UI 구현
   return (
     <>
-      <div className="game-mode-selector">
+      {/* <div className="game-mode-selector">
         <button onClick={() => setGameMode("playerVsPlayer")}>
           Player vs Player
         </button>
         <button onClick={() => setGameMode("playerVsComputer")}>
           Player vs Computer
         </button>
-      </div>
+      </div> */}
 
-      <div className="flex items-center justify-center flex-col h-screen bg-gradient-to-br from-neutral-900 to-neutral-800">
+      <div className="w-[500px] flex items-center justify-center flex-col">
         <div className="text-white">
           {userColor === "white" ? "black" : "white"}
           <div>
@@ -144,6 +145,26 @@ export default function ChessGame() {
               ? msToSec(timers.white)
               : msToSec(timers.black)}
           </div>
+        </div>
+        <div>
+          {/* 테스트 버튼 */}
+          <button
+            className="text-white"
+            onClick={() => {
+              game.play();
+            }}
+          >
+            시작
+          </button>
+          <button
+            className="text-white"
+            onClick={() => {
+              const newGame = new Game("playerVsComputer", "white", 10000);
+              setGame(newGame);
+            }}
+          >
+            컴퓨터
+          </button>
         </div>
       </div>
     </>

@@ -56,41 +56,47 @@ class Game {
     if (!this.isGameStarted || this.isGameOver) {
       return false;
     }
-    try {
-      const result = this.chess.move(move);
-      if (result) {
-        this.timers[this.currentPlayer].stop(); // 현재 플레이어의 타이머 정지
-        this.switchPlayer();
-        this.timers[this.currentPlayer].start(); // 다음 플레이어의 타이머 시작
+    if (this.gameMode === "playerVsComputer") {
+      this.chess.move(move);
+      this.makeComputerMove();
+      return true;
+    } else {
+      try {
+        const result = this.chess.move(move);
+        if (result) {
+          this.timers[this.currentPlayer].stop(); // 현재 플레이어의 타이머 정지
+          this.switchPlayer();
+          this.timers[this.currentPlayer].start(); // 다음 플레이어의 타이머 시작
 
-        if (this.chess.isGameOver()) {
-          if (this.chess.isCheckmate()) {
-            console.log(
-              `Checkmate! ${
-                this.chess.turn() === "w" ? "black" : "white"
-              } wins!`
-            );
-          } else if (this.chess.isDraw()) {
-            console.log("Draw");
-          } else {
-            console.log("Game over");
+          if (this.chess.isGameOver()) {
+            if (this.chess.isCheckmate()) {
+              console.log(
+                `Checkmate! ${
+                  this.chess.turn() === "w" ? "black" : "white"
+                } wins!`
+              );
+            } else if (this.chess.isDraw()) {
+              console.log("Draw");
+            } else {
+              console.log("Game over");
+            }
           }
+          return true;
         }
-        return true;
+        return false;
+      } catch (e) {
+        return false;
       }
-      return false;
-    } catch (e) {
-      return false;
     }
   }
 
   private makeComputerMove(): void {
-    const moves = this.chess.moves();
-    if (moves.length > 0) {
-      const randomMove = moves[Math.floor(Math.random() * moves.length)];
-      this.chess.move(randomMove);
-      this.switchPlayer();
-    }
+    console.log(this.chess.fen());
+    postChessApi({ fen: this.chess.fen() }).then((data) => {
+      console.log(data);
+      const move = this.chess.move({ from: data.from, to: data.to });
+      console.log(this.chess.fen());
+    });
   }
 
   public handleGameOver(): void {
@@ -144,3 +150,15 @@ class Game {
 }
 
 export default Game;
+
+// 체스엔진 테스트 api
+async function postChessApi(data = {}) {
+  const response = await fetch("https://chess-api.com/v1", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
