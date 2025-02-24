@@ -1,21 +1,24 @@
 import { socket } from "@/lib/socket";
 import { useState, useEffect } from "react";
 import { Chessboard } from "react-chessboard";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import "./chess-board.css";
 import { msToSec } from "@/lib/timer";
 import Game, { GameMode } from "@/lib/game";
+import { useChess } from "@/lib/context/ChessContext ";
 
 export default function ChessGame() {
-  const [gameMode, setGameMode] = useState<GameMode>("playerVsPlayer");
-  const [game, setGame] = useState<Game>(
-    () => new Game("playerVsPlayer", "white", 0)
-  );
+  const [gameMode, setGameMode] = useState<GameMode>(null);
+  // const [game, setGame] = useState<Game>(
+  //   () => new Game("playerVsPlayer", "white", 0)
+  // );
 
+  const { game, setGame } = useChess();
   const [fen, setFen] = useState(game.getCurrentBoard());
   const [over, setOver] = useState("");
   const searchParams = useSearchParams();
+  const path = usePathname();
   const room = searchParams.get("room");
 
   const [userColor, setUserColor] = useState("white");
@@ -50,6 +53,15 @@ export default function ChessGame() {
           setOver("Failed to fetch room");
         }
       });
+    } else {
+      const pathSegments = path.split("/").filter((segment) => segment);
+      const lastSegment = pathSegments[pathSegments.length - 1];
+      console.log(lastSegment);
+      if (lastSegment === "computer") {
+        setGameMode("playerVsComputer");
+        const newGame = new Game("playerVsComputer", "white", 1000);
+        setGame(newGame);
+      }
     }
   }, [room]);
 
@@ -61,9 +73,20 @@ export default function ChessGame() {
 
   // 체스말움직임
   function onDrop(sourceSquare: any, targetSquare: any) {
-    console.log(game.getCurrentPlayer());
     if (game.getCurrentPlayer() !== userColor) return false;
     const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
+    if (game.getGameMode() === "playerVsComputer") {
+      if (game.makeMove(moveData)) {
+        console.log(gameMode);
+        setFen(game.getCurrentBoard());
+        (async () => {
+          const computerMove = await game.makeComputerMove();
+          console.log(computerMove);
+          setFen(game.getCurrentBoard());
+        })();
+      }
+      return true;
+    }
     if (game.makeMove(moveData)) {
       setFen(game.getCurrentBoard());
       if (room) {
@@ -77,7 +100,6 @@ export default function ChessGame() {
   // 상대 움직임 반영
   useEffect(() => {
     socket.on("move", (move) => {
-      console.log(move);
       game.makeMove(move);
       setFen(game.getCurrentBoard());
     });
@@ -103,12 +125,11 @@ export default function ChessGame() {
     return () => clearInterval(interval);
   }, [game]);
 
-  useEffect(() => {
-    if (game) {
-      game.play();
-    }
-  }, [game]);
-  // 컴퓨터 모드일 때 타이머, 게임 자동시작, api 엔진을 통해 계산된 수 반영하는것 고민하기
+  // useEffect(() => {
+  //   if (game) {
+  //     game.play();
+  //   }
+  // }, [game]);
 
   return (
     <>
@@ -155,15 +176,6 @@ export default function ChessGame() {
             }}
           >
             시작
-          </button>
-          <button
-            className="text-white"
-            onClick={() => {
-              const newGame = new Game("playerVsComputer", "white", 10000);
-              setGame(newGame);
-            }}
-          >
-            컴퓨터
           </button>
         </div>
       </div>

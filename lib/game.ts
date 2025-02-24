@@ -2,7 +2,7 @@ import Timer from "./timer";
 import { Chess } from "chess.js";
 
 type Player = "white" | "black";
-export type GameMode = "playerVsPlayer" | "playerVsComputer";
+export type GameMode = "playerVsPlayer" | "playerVsComputer" | null;
 
 interface Move {
   from: string;
@@ -36,7 +36,10 @@ class Game {
     if (!this.isGameStarted) {
       this.isGameStarted = true;
       this.isGameOver = false;
-      this.timers[this.currentPlayer].start();
+      if (this.getGameMode() !== "playerVsComputer") {
+        console.log(this.getGameMode());
+        this.timers[this.currentPlayer].start();
+      }
       console.log("Game started");
     }
   }
@@ -57,8 +60,7 @@ class Game {
       return false;
     }
     if (this.gameMode === "playerVsComputer") {
-      this.chess.move(move);
-      this.makeComputerMove();
+      const result = this.chess.move(move);
       return true;
     } else {
       try {
@@ -90,13 +92,14 @@ class Game {
     }
   }
 
-  private makeComputerMove(): void {
-    console.log(this.chess.fen());
-    postChessApi({ fen: this.chess.fen() }).then((data) => {
-      console.log(data);
-      const move = this.chess.move({ from: data.from, to: data.to });
-      console.log(this.chess.fen());
+  public async makeComputerMove(): Promise<any> {
+    const data = await postChessApi({
+      fen: this.chess.fen(),
+      depth: 0,
+      maxThinkingTime: 1,
     });
+    const move = this.chess.move({ from: data.from, to: data.to });
+    return move;
   }
 
   public handleGameOver(): void {
@@ -147,12 +150,16 @@ class Game {
   public getIsGameOver(): boolean {
     return this.isGameOver;
   }
+
+  public getGameMode(): string | null {
+    return this.gameMode;
+  }
 }
 
 export default Game;
 
 // 체스엔진 테스트 api
-async function postChessApi(data = {}) {
+export async function postChessApi(data = {}) {
   const response = await fetch("https://chess-api.com/v1", {
     method: "POST",
     headers: {
