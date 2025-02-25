@@ -31,6 +31,7 @@ export default function Game() {
     fetchUserData();
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (socket) {
       socket.on("matchFound", (data) => {
@@ -43,7 +44,7 @@ export default function Game() {
         socket.off("matchFound");
       }
     };
-  }, [socket, handleRedirect]);
+  }, [socket]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setGameMode(e.target.value);

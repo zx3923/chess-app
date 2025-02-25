@@ -25,6 +25,7 @@ export default function ChessGame() {
   const [timers, setTimers] = useState({ white: 300000, black: 300000 });
 
   // 초기 방 정보
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (room) {
       socket.emit("getRoomInfo", room, (roomInfo: any) => {
@@ -63,8 +64,9 @@ export default function ChessGame() {
         setGame(newGame);
       }
     }
-  }, [room, gameMode, path, setGame]);
+  }, [room]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (game.getIsGameOver()) {
       console.log(over);

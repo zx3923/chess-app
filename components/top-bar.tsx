@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   UserCircleIcon,
   Bars4Icon,
@@ -13,11 +13,11 @@ export default function TopBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const checkSession = async () => {
+  const checkSession = useCallback(async () => {
     const response = await fetch("/api/oauth");
     const data = await response.json();
     setIsLoggedIn(data);
-  };
+  }, []);
 
   useEffect(() => {
     checkSession();
