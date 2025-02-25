@@ -3,7 +3,7 @@ import { getSession } from "@/lib/session/session";
 import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
-  console.log("getuser test!!!"); // 로그 확인
+  console.log("getUser api", request); // 로그 확인
 
   const session = await getSession();
 
@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
         id: session.id,
       },
     });
+    console.log(user);
 
     if (user) {
       return Response.json(user); // 유저 정보를 반환

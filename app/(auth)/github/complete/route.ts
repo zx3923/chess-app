@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       status: 400,
     });
   }
-  const email = await getGithubEmail(access_token);
+  // const email = await getGithubEmail(access_token);
   const { id, name, avatar_url } = await getGithubPropfile(access_token);
 
   const user = await db.user.findUnique({

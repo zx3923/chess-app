@@ -76,6 +76,7 @@ export async function changePassword(prevState: any, formData: FormData) {
           password: hashedPassword,
         },
       });
+      console.log(user);
       redirect("/settings");
     } else {
       return {

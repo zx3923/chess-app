@@ -82,6 +82,7 @@ export async function changeUsername(prevState: any, formData: FormData) {
           user_name: result.data.username,
         },
       });
+      console.log(user);
       redirect("/settings");
     } else {
       return {

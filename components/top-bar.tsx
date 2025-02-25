@@ -57,12 +57,6 @@ export default function TopBar() {
                 >
                   게임
                 </Link>
-                {/* <Link
-                  href="/"
-                  className="text-gray-300 hover:bg-neutral-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  랜덤 매칭
-                </Link> */}
               </div>
             </div>
           </div>

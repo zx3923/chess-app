@@ -2,7 +2,7 @@ import db from "@/lib/db";
 import { getSession } from "@/lib/session/session";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import React, { useState } from "react";
+import React from "react";
 import {
   PencilSquareIcon,
   ComputerDesktopIcon,
