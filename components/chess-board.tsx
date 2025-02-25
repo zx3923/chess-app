@@ -162,7 +162,7 @@ function ChessGame() {
 
 export function ChessGameBoard() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense>
       <ChessGame />
     </Suspense>
   );
