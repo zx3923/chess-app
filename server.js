@@ -25,7 +25,6 @@ app.prepare().then(() => {
       origin: "https://chess-app-beryl.vercel.app",
       methods: ["GET", "POST"],
     },
-    transports: ["websocket"],
   });
 
   io.on("connection", (socket) => {

@@ -59,6 +59,7 @@ export default function Register() {
             <Link
               className="flex justify-center items-center gap-2 bg-blue-600 py-2 px-4 border border-transparent text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-offset-2 focus:ring-blue-500"
               href="/github/start"
+              prefetch={false}
             >
               <svg
                 className="size-6"
