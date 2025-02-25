@@ -1,7 +1,7 @@
 "use client";
 
 import { socket } from "@/lib/socket";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Chessboard } from "react-chessboard";
 import { usePathname, useSearchParams } from "next/navigation";
 
@@ -10,7 +10,7 @@ import { msToSec } from "@/lib/timer";
 import Game, { GameMode } from "@/lib/game";
 import { useChess } from "@/lib/context/ChessContext ";
 
-export default function ChessGame() {
+function ChessGame() {
   const [gameMode, setGameMode] = useState<GameMode>(null);
   // const [game, setGame] = useState<Game>(
   //   () => new Game("playerVsPlayer", "white", 0)
@@ -130,60 +130,40 @@ export default function ChessGame() {
     return () => clearInterval(interval);
   }, [game]);
 
-  // useEffect(() => {
-  //   if (game) {
-  //     game.play();
-  //   }
-  // }, [game]);
-
   return (
-    <>
-      {/* <div className="game-mode-selector">
-        <button onClick={() => setGameMode("playerVsPlayer")}>
-          Player vs Player
-        </button>
-        <button onClick={() => setGameMode("playerVsComputer")}>
-          Player vs Computer
-        </button>
-      </div> */}
-
-      <div className="w-[500px] flex items-center justify-center flex-col">
-        <div className="text-white">
-          {userColor === "white" ? "black" : "white"}
-          <div>
-            {userColor === "black"
-              ? msToSec(timers.white)
-              : msToSec(timers.black)}
-          </div>
-        </div>
-        <div className="w-full max-w-[500px]">
-          <Chessboard
-            position={fen}
-            onPieceDrop={onDrop}
-            boardOrientation={userColor === "white" ? "white" : "black"}
-          />
-        </div>
-
-        <div className="text-white">
-          {userColor}
-          <div>
-            {userColor === "white"
-              ? msToSec(timers.white)
-              : msToSec(timers.black)}
-          </div>
-        </div>
+    <div className="w-[500px] flex items-center justify-center flex-col">
+      <div className="text-white">
+        {userColor === "white" ? "black" : "white"}
         <div>
-          {/* 테스트 버튼 */}
-          <button
-            className="text-white"
-            onClick={() => {
-              game.play();
-            }}
-          >
-            시작
-          </button>
+          {userColor === "black"
+            ? msToSec(timers.white)
+            : msToSec(timers.black)}
         </div>
       </div>
-    </>
+      <div className="w-full max-w-[500px]">
+        <Chessboard
+          position={fen}
+          onPieceDrop={onDrop}
+          boardOrientation={userColor === "white" ? "white" : "black"}
+        />
+      </div>
+
+      <div className="text-white">
+        {userColor}
+        <div>
+          {userColor === "white"
+            ? msToSec(timers.white)
+            : msToSec(timers.black)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ChessGameBoard() {
+  return (
+    <Suspense>
+      <ChessGame />
+    </Suspense>
   );
 }
