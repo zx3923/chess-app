@@ -1,7 +1,7 @@
-"use client";
+// "use client";
 
-import ChessGame from "@/components/chess-board";
+// import ChessGame from "@/components/chess-board";
 
-export default function Chess() {
-  return <ChessGame />;
-}
+// export default function Chess() {
+//   return <ChessGame />;
+// }
