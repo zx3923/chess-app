@@ -13,6 +13,10 @@ export default function Game() {
 
   const router = useRouter();
 
+  const handleRedirect = (roomId: string) => {
+    router.push(`/chess?room=${roomId}`);
+  };
+
   useEffect(() => {
     // console.log("getUser start");
     const fetchUserData = async () => {
@@ -39,11 +43,7 @@ export default function Game() {
         socket.off("matchFound");
       }
     };
-  }, [socket]);
-
-  const handleRedirect = (roomId: string) => {
-    router.push(`/chess?room=${roomId}`);
-  };
+  }, [socket, handleRedirect]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setGameMode(e.target.value);

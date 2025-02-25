@@ -1,6 +1,5 @@
 import {
   getAccessToken,
-  getGithubEmail,
   getGithubPropfile,
 } from "@/lib/auth/github/githubService";
 import isExistUsername from "@/lib/auth/isExistUsername";

@@ -63,10 +63,11 @@ export default function ChessGame() {
         setGame(newGame);
       }
     }
-  }, [room]);
+  }, [room, gameMode, path, setGame]);
 
   useEffect(() => {
     if (game.getIsGameOver()) {
+      console.log(over);
       setOver("Game Over");
     }
   }, [fen, game]);
