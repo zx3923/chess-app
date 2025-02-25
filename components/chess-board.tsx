@@ -1,3 +1,5 @@
+"use client";
+
 import { socket } from "@/lib/socket";
 import { useState, useEffect } from "react";
 import { Chessboard } from "react-chessboard";
