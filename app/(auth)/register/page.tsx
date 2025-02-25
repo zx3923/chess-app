@@ -76,13 +76,13 @@ export default function Register() {
               </svg>
               <span>깃허브로 계속하기</span>
             </Link>
-            <Link
+            {/* <Link
               className="flex justify-center gap-2 bg-blue-600 py-2 px-4 border border-transparent text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-offset-2 focus:ring-blue-500"
               href="/sms"
             >
               <ChatBubbleOvalLeftEllipsisIcon className="size-6" />
               <span>휴대폰 번호로 계속하기</span>
-            </Link>
+            </Link> */}
           </div>
         </>
         <div className="text-center">

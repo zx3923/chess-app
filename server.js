@@ -20,7 +20,13 @@ const waitingQueues = {
 app.prepare().then(() => {
   const httpServer = createServer(handler);
 
-  const io = new Server(httpServer);
+  const io = new Server(httpServer, {
+    cors: {
+      origin: "https://chess-app-beryl.vercel.app",
+      methods: ["GET", "POST"],
+    },
+    transports: ["websocket"],
+  });
 
   io.on("connection", (socket) => {
     console.log("a user connected");
