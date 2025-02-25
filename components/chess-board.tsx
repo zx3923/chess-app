@@ -25,9 +25,9 @@ function ChessGame() {
 
   const [userColor, setUserColor] = useState("white");
   const [timers, setTimers] = useState({ white: 300000, black: 300000 });
+  console.log(over);
 
   // 초기 방 정보
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (room) {
       socket.emit("getRoomInfo", room, (roomInfo: any) => {
@@ -66,12 +66,10 @@ function ChessGame() {
         setGame(newGame);
       }
     }
-  }, [room]);
+  }, [room, gameMode, path, setGame]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (game.getIsGameOver()) {
-      console.log(over);
       setOver("Game Over");
     }
   }, [fen, game]);
