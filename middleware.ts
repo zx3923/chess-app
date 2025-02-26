@@ -32,6 +32,7 @@ export async function middleware(request: NextRequest) {
   // 세션이 없고 publicOnlyUrls에 해당하지 않는 URL인 경우 리디렉션
   if (!session.id && !exists) {
     console.log("check");
+    console.log("!", session);
     return NextResponse.redirect(new URL("/", request.url));
   }
 
