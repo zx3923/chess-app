@@ -72,6 +72,7 @@ export async function changeUsername(prevState: any, formData: FormData) {
       user?.password ?? "XXXX"
     );
     if (ok) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const user = await db.user.update({
         where: {
           id: session.id,

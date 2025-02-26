@@ -60,6 +60,7 @@ class Game {
       return false;
     }
     if (this.gameMode === "playerVsComputer") {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const result = this.chess.move(move);
       return true;
     } else {

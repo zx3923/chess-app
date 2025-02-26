@@ -68,6 +68,7 @@ export async function changePassword(prevState: any, formData: FormData) {
     );
     if (ok) {
       const hashedPassword = await bcrypt.hash(result.data.newPassword, 12);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const user = await db.user.update({
         where: {
           id: session.id,
