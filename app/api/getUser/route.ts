@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
         email: true,
       },
     });
-    console.log(user);
 
     if (user) {
       return Response.json(user); // 유저 정보를 반환

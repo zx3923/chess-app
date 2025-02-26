@@ -61,7 +61,6 @@ class Game {
     }
     if (this.gameMode === "playerVsComputer") {
       const result = this.chess.move(move);
-      console.log(result);
       return true;
     } else {
       try {

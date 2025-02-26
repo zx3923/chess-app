@@ -17,16 +17,13 @@ const publicOnlyUrls: Routes = {
 export async function middleware(request: NextRequest) {
   const session = await getSession();
   const exists = publicOnlyUrls[request.nextUrl.pathname];
-  console.log("session", session);
   // 세션이 없고 publicOnlyUrls에 해당하지 않는 URL인 경우 리디렉션
   if (!session.id && !exists) {
-    console.log("check");
     return NextResponse.redirect(new URL("/", request.url));
   }
 
   // 로그인 상태에서 publicOnlyUrls에 해당하는 URL로 들어가면 /home으로 리디렉션
   if (session.id && exists) {
-    console.log("check2");
     return NextResponse.redirect(new URL("/home", request.url));
   }
 }

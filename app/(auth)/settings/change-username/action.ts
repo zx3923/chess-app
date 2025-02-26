@@ -34,7 +34,6 @@ const formSchema = z
       },
     });
     if (user) {
-      console.log(user);
       ctx.addIssue({
         code: "custom",
         message: "이미 사용중인 이름입니다.",
@@ -51,7 +50,6 @@ export async function changeUsername(prevState: any, formData: FormData) {
     password: formData.get("password"),
   };
   const session = await getSession();
-  console.log(session);
   const result = await formSchema.spa(data);
 
   if (!result.success) {
@@ -82,7 +80,6 @@ export async function changeUsername(prevState: any, formData: FormData) {
           user_name: result.data.username,
         },
       });
-      console.log(user);
       redirect("/settings");
     } else {
       return {

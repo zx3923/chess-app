@@ -12,7 +12,10 @@ export default function Login() {
   const [state, action] = useActionState(logIn, null);
   const { login } = useUser();
   if (state?.isLoggedIn) {
-    login(state.username!, state.id!, state.email ? state.email : undefined);
+    setTimeout(() => {
+      // 다른 컴포넌트 렌더링 중 setState 실행시 오류 잠시 기다렸다 실행
+      login(state.username!, state.id!, state.email ? state.email : undefined);
+    }, 0);
     redirect("/home");
   }
 

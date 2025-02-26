@@ -1,7 +1,5 @@
 export async function getAccessToken(code: string) {
   let accessTokenURL = "https://github.com/login/oauth/access_token";
-  // console.log(process.env.GITHUB_CLIENT_ID!);
-  // console.log(process.env.GITHUB_CLIENT_SECRET!);
 
   const accessTokenParams = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID!,

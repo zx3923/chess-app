@@ -84,7 +84,6 @@ export async function changeEmail(prevState: any, formData: FormData) {
           email: result.data.email,
         },
       });
-      console.log(user);
       redirect("/settings");
     } else {
       return {

@@ -13,7 +13,6 @@ export default function Home() {
   const { user, logout } = useUser();
   const hanldeLogout = async () => {
     const response = await fetch("/api/logout");
-    console.log(response);
     if (response.ok) {
       logout();
       window.location.href = "/";
