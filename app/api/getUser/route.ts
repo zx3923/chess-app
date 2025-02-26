@@ -12,6 +12,11 @@ export async function GET(request: NextRequest) {
       where: {
         id: session.id,
       },
+      select: {
+        id: true,
+        user_name: true,
+        email: true,
+      },
     });
     console.log(user);
 

@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { logIn } from "./actions";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Input from "@/components/input";
 import Button from "@/components/button";
+import { useUser } from "@/lib/context/UserContext";
+import { redirect } from "next/navigation";
 
 export default function Login() {
   const [state, action] = useActionState(logIn, null);
+  const { login } = useUser();
+  if (state?.isLoggedIn) {
+    login(state.username!, state.id!, state.email ? state.email : undefined);
+    redirect("/home");
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-neutral-900 to-neutral-800 text-neutral-200 p-4">
       <div className="max-w-md w-full space-y-8 bg-neutral-800 p-8 rounded-xl shadow-lg">
@@ -21,13 +29,13 @@ export default function Login() {
             name="email"
             type="email"
             placeholder="이메일"
-            errors={state?.fieldErrors.email}
+            errors={state?.fieldErrors?.email}
           />
           <Input
             name="password"
             type="password"
             placeholder="비밀번호"
-            errors={state?.fieldErrors.password}
+            errors={state?.fieldErrors?.password}
           />
           <Button text="로그인" />
         </form>

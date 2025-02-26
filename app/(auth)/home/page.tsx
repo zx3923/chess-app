@@ -1,35 +1,24 @@
-import db from "@/lib/db";
-import { getSession } from "@/lib/session/session";
+"use client";
+
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import React from "react";
 import {
   PencilSquareIcon,
   ComputerDesktopIcon,
   UsersIcon,
 } from "@heroicons/react/24/solid";
-async function getUser() {
-  const session = await getSession();
-  if (session.id) {
-    const user = await db.user.findUnique({
-      where: {
-        id: session.id,
-      },
-    });
-    if (user) {
-      return user;
-    }
-  }
-  notFound();
-}
+import { useUser } from "@/lib/context/UserContext";
 
-export default async function Home() {
-  const user = await getUser();
-  const logOut = async () => {
-    "use server";
-    const session = await getSession();
-    await session.destroy();
-    redirect("/");
+export default function Home() {
+  const { user, logout } = useUser();
+  const hanldeLogout = async () => {
+    const response = await fetch("/api/logout");
+    console.log(response);
+    if (response.ok) {
+      logout();
+      redirect("/");
+    }
   };
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-neutral-900 to-neutral-800 text-neutral-200 p-4">
@@ -37,7 +26,7 @@ export default async function Home() {
         <div className="flex justify-between mb-4">
           <div className="flex items-center gap-4">
             <div>아바타</div>
-            <div className="text-lg font-semibold">{user.user_name}</div>
+            <div className="text-lg font-semibold">{user.username}</div>
             <div className="text-sm text-neutral-400">{user.email}</div>
           </div>
           <div className="flex items-center gap-4">
@@ -75,17 +64,12 @@ export default async function Home() {
           </button>
         </div>
         <div className="flex justify-end">
-          {/* <Link
-            href="/edit-profile"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline text-center"
+          <button
+            onClick={hanldeLogout}
+            className="w-24 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
           >
-            계정 / 정보 관리
-          </Link> */}
-          <form action={logOut} className="flex justify-center w-24">
-            <button className="w-full bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-              로그아웃
-            </button>
-          </form>
+            로그아웃
+          </button>
         </div>
       </div>
     </div>

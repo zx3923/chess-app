@@ -8,20 +8,29 @@ import {
   Bars4Icon,
   BarsArrowUpIcon,
 } from "@heroicons/react/24/solid";
+import { useUser } from "@/lib/context/UserContext";
 
 export default function TopBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  const checkSession = useCallback(async () => {
-    const response = await fetch("/api/oauth");
-    const data = await response.json();
-    setIsLoggedIn(data);
-  }, []);
+  const { user, setUser, logout } = useUser();
 
   useEffect(() => {
-    checkSession();
-  }, [checkSession, isLoggedIn, setIsLoggedIn]);
+    async function getUser() {
+      const response = await fetch("/api/getUser");
+      console.log(response);
+      if (response.ok) {
+        const userData = await response.json();
+        setUser({
+          isLoggedIn: true,
+          id: userData.id,
+          username: userData.user_name,
+          email: userData.email,
+        });
+        console.log(userData);
+      }
+    }
+    getUser();
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -31,6 +40,7 @@ export default function TopBar() {
     const response = await fetch("/api/logout");
     console.log(response);
     if (response.ok) {
+      logout();
       redirect("/");
     }
   };
@@ -62,7 +72,7 @@ export default function TopBar() {
           </div>
           <div className="hidden md:block">
             <div className="ml-4 flex items-center md:ml-6">
-              {isLoggedIn ? (
+              {user.isLoggedIn ? (
                 <Link
                   href="/settings"
                   className="bg-neutral-700 p-1 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-neutral-800 focus:ring-white"
@@ -120,7 +130,7 @@ export default function TopBar() {
             >
               랜덤 매칭
             </Link>
-            {isLoggedIn ? (
+            {user.isLoggedIn ? (
               <button
                 onClick={hanldeLogout}
                 className="text-gray-300 hover:bg-neutral-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"

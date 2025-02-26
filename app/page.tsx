@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 export default async function Home() {
   const session = await getSession();
-  console.log(session);
 
   const logOut = async () => {
     "use server";

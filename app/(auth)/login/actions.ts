@@ -68,6 +68,8 @@ export async function logIn(prevState: any, formData: FormData) {
       select: {
         id: true,
         password: true,
+        user_name: true,
+        email: true,
       },
     });
     const ok = await bcrypt.compare(
@@ -76,7 +78,13 @@ export async function logIn(prevState: any, formData: FormData) {
     );
     if (ok) {
       await successLogin(user!.id);
-      redirect("/home");
+      // redirect("/home");
+      return {
+        id: user?.id,
+        username: user?.user_name,
+        isLoggedIn: true,
+        email: user?.email,
+      };
     } else {
       return {
         fieldErrors: {
