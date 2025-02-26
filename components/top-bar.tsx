@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   UserCircleIcon,
   Bars4Icon,
@@ -30,7 +30,7 @@ export default function TopBar() {
       }
     }
     getUser();
-  }, []);
+  }, [setUser]);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);

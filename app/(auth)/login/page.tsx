@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { logIn } from "./actions";
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import Input from "@/components/input";
 import Button from "@/components/button";
 import { useUser } from "@/lib/context/UserContext";

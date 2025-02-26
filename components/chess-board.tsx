@@ -53,6 +53,7 @@ function ChessGame() {
           fetchUserData();
         } else {
           setOver("Failed to fetch room");
+          console.log(over);
         }
       });
     } else {

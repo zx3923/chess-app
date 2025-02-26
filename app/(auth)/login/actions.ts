@@ -8,7 +8,6 @@ import db from "@/lib/db";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { successLogin } from "@/lib/session/session";
-import { redirect } from "next/navigation";
 
 const checkEmailExists = async (email: string) => {
   const user = await db.user.findUnique({
