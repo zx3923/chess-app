@@ -38,7 +38,9 @@ export default function TopBar() {
   };
 
   const hanldeLogout = async () => {
-    const response = await fetch("/api/logout");
+    const response = await fetch("/api/logout", {
+      cache: "no-store",
+    });
     console.log(response);
     if (response.ok) {
       logout();
