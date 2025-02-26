@@ -1,17 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   UserCircleIcon,
   Bars4Icon,
   BarsArrowUpIcon,
 } from "@heroicons/react/24/solid";
 import { useUser } from "@/lib/context/UserContext";
+import { useMenu } from "@/lib/context/MenuContext";
 
 export default function TopBar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isMenuOpen, toggleMenu, closeMenu } = useMenu();
   const { user, setUser, logout } = useUser();
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     async function getUser() {
@@ -33,8 +36,8 @@ export default function TopBar() {
     getUser();
   }, []);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+  const toggleMenuHandler = () => {
+    toggleMenu();
   };
 
   const hanldeLogout = async () => {
@@ -47,6 +50,21 @@ export default function TopBar() {
       window.location.href = "/";
     }
   };
+
+  // Close menu if clicked outside of it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        closeMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [closeMenu]);
 
   return (
     <nav className="bg-neutral-800 shadow-lg absolute w-full">
@@ -113,7 +131,7 @@ export default function TopBar() {
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden" id="mobile-menu">
+        <div ref={menuRef} className="md:hidden" id="mobile-menu">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link
               href="/"
