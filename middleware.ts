@@ -17,6 +17,7 @@ const publicOnlyUrls: Routes = {
 export async function middleware(request: NextRequest) {
   const session = await getSession();
   const exists = publicOnlyUrls[request.nextUrl.pathname];
+  console.log("session", session);
   if (!session.id) {
     if (!exists) {
       // 비로그인 경우 공용url 제외 다른 url 진입시 / 으로 보냄

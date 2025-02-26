@@ -15,7 +15,9 @@ export default function TopBar() {
 
   useEffect(() => {
     async function getUser() {
-      const response = await fetch("/api/getUser");
+      const response = await fetch("/api/getUser", {
+        cache: "no-store",
+      });
       console.log(response);
       if (response.ok) {
         const userData = await response.json();
@@ -39,7 +41,6 @@ export default function TopBar() {
     const response = await fetch("/api/logout");
     console.log(response);
     if (response.ok) {
-      console.log("실행확인");
       logout();
     }
   };
@@ -132,7 +133,7 @@ export default function TopBar() {
             {user.isLoggedIn ? (
               <button
                 onClick={hanldeLogout}
-                className="w-full text-gray-300 hover:bg-neutral-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
+                className="w-full text-left text-gray-300 hover:bg-neutral-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium"
               >
                 로그아웃
               </button>
