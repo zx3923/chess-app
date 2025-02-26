@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import {
   UserCircleIcon,
@@ -41,7 +40,6 @@ export default function TopBar() {
     console.log(response);
     if (response.ok) {
       logout();
-      redirect("/");
     }
   };
 

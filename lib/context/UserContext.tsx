@@ -1,5 +1,6 @@
 "use client";
 
+import { redirect } from "next/navigation";
 import { createContext, ReactNode, useContext, useState } from "react";
 
 type User = {
@@ -26,7 +27,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   // 로그인 및 로그아웃 상태 변경 함수
   const login = (username: string, id: number, email?: string) =>
     setUser({ isLoggedIn: true, username, id, email });
-  const logout = () => setUser({ isLoggedIn: false });
+  const logout = () => {
+    setUser({ isLoggedIn: false });
+    redirect("/");
+  };
 
   return (
     <UserContext.Provider value={{ user, setUser, login, logout }}>
