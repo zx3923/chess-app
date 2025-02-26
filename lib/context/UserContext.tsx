@@ -29,7 +29,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     setUser({ isLoggedIn: true, username, id, email });
   const logout = () => {
     setUser({ isLoggedIn: false });
-    redirect("/");
   };
 
   return (

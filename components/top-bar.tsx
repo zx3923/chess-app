@@ -44,6 +44,7 @@ export default function TopBar() {
     console.log(response);
     if (response.ok) {
       logout();
+      window.location.href = "/";
     }
   };
 
