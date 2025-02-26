@@ -5,7 +5,7 @@ import { useChess } from "@/lib/context/ChessContext ";
 export default function PlayComputer() {
   const { game } = useChess();
   return (
-    <div className="bg-black opacity-20 h-[700px] w-[300px] text-white">
+    <div className="bg-neutral-900 h-[700px] w-[300px] text-white max-[768px]:w-full rounded">
       <button
         className="text-white"
         onClick={() => {

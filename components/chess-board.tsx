@@ -9,6 +9,7 @@ import "./chess-board.css";
 import { msToSec } from "@/lib/timer";
 import Game, { GameMode } from "@/lib/game";
 import { useChess } from "@/lib/context/ChessContext ";
+import { useMenu } from "@/lib/context/MenuContext";
 
 function ChessGame() {
   const [gameMode, setGameMode] = useState<GameMode>(null);
@@ -25,6 +26,7 @@ function ChessGame() {
 
   const [userColor, setUserColor] = useState("white");
   const [timers, setTimers] = useState({ white: 300000, black: 300000 });
+  const { isMenuOpen } = useMenu();
 
   // 초기 방 정보
   useEffect(() => {
@@ -128,7 +130,11 @@ function ChessGame() {
   }, [game]);
 
   return (
-    <div className="w-[500px] flex items-center justify-center flex-col">
+    <div
+      className={`flex items-center justify-center flex-col max-[768px]:mt-24 ${
+        isMenuOpen ? "max-[768px]:mt-72" : ""
+      }`}
+    >
       <div className="text-white">
         {userColor === "white" ? "black" : "white"}
         <div>
@@ -137,7 +143,7 @@ function ChessGame() {
             : msToSec(timers.black)}
         </div>
       </div>
-      <div className="w-full max-w-[500px]">
+      <div className="w-96 sm:w-[450px] md:w-[620px]">
         <Chessboard
           position={fen}
           onPieceDrop={onDrop}

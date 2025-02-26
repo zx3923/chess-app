@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   UserCircleIcon,
   Bars4Icon,
@@ -21,7 +21,6 @@ export default function TopBar() {
       const response = await fetch("/api/getUser", {
         cache: "no-store",
       });
-      console.log(response);
       if (response.ok) {
         const userData = await response.json();
         setUser({
@@ -30,21 +29,15 @@ export default function TopBar() {
           username: userData.user_name,
           email: userData.email,
         });
-        console.log(userData);
       }
     }
     getUser();
   }, []);
 
-  const toggleMenuHandler = () => {
-    toggleMenu();
-  };
-
   const hanldeLogout = async () => {
     const response = await fetch("/api/logout", {
       cache: "no-store",
     });
-    console.log(response);
     if (response.ok) {
       logout();
       window.location.href = "/";
@@ -131,7 +124,7 @@ export default function TopBar() {
       </div>
 
       {isMenuOpen && (
-        <div ref={menuRef} className="md:hidden" id="mobile-menu">
+        <div ref={menuRef} className="md:hidden z-10 relative" id="mobile-menu">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link
               href="/"
