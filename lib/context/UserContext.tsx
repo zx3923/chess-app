@@ -1,6 +1,5 @@
 "use client";
 
-import { redirect } from "next/navigation";
 import { createContext, ReactNode, useContext, useState } from "react";
 
 type User = {
