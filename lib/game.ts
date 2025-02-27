@@ -1,5 +1,6 @@
 import Timer from "./timer";
 import { Chess } from "chess.js";
+import { Square } from "chess.js";
 
 export type Player = "white" | "black";
 export type GameMode = "playerVsPlayer" | "playerVsComputer" | null;
@@ -40,10 +41,11 @@ class Game {
         this.timers[this.currentPlayer].start();
       } else if (this.getGameMode() === "playerVsComputer") {
         if (this.getUserColor() === "black") {
-          async () => {
+          (async () => {
             const computerMove = await this.makeComputerMove();
-            console.log(computerMove);
-          };
+            console.log(this.currentPlayer);
+            this.switchPlayer();
+          })();
         }
       }
       console.log("Game started");
@@ -165,6 +167,20 @@ class Game {
 
   public getUserColor(): string {
     return this.userColor;
+  }
+
+  public handleSquareClick(
+    square: Square
+  ): Partial<Record<Square, { boxShadow: string }>> {
+    // 현재 클릭한 칸에 있는 기물이 무엇인지 확인
+    const moves = this.chess.moves({ square, verbose: true });
+    const newMoveSquares: Partial<Record<Square, { boxShadow: string }>> = {};
+    moves.forEach((move) => {
+      newMoveSquares[move.to] = {
+        boxShadow: "inset 0 0 1px 6px rgba(255,255,255)",
+      };
+    });
+    return newMoveSquares;
   }
 }
 

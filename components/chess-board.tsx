@@ -1,31 +1,27 @@
 "use client";
 
 import { socket } from "@/lib/socket";
-import { useState, useEffect, Suspense } from "react";
 import { Chessboard } from "react-chessboard";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
 import { ClockIcon } from "@heroicons/react/24/outline";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import "./chess-board.css";
 import { msToSec } from "@/lib/timer";
 import Game, { GameMode } from "@/lib/game";
-import { useChess } from "@/lib/context/ChessContext ";
 import { useMenu } from "@/lib/context/MenuContext";
+import { useChess } from "@/lib/context/ChessContext ";
 
 function ChessGame() {
   const [gameMode, setGameMode] = useState<GameMode>(null);
-  // const [game, setGame] = useState<Game>(
-  //   () => new Game("playerVsPlayer", "white", 0)
-  // );
-
   const { game, setGame } = useChess();
   const [fen, setFen] = useState(game.getCurrentBoard());
   const [over, setOver] = useState("");
   const searchParams = useSearchParams();
   const path = usePathname();
   const room = searchParams.get("room");
-
-  // const [userColor, setUserColor] = useState("white");
+  const [canMoveSquares, setCanMoveSquares] = useState({});
+  const [currentPiece, setCurrentPice] = useState(null);
   const [timers, setTimers] = useState({ white: 300000, black: 300000 });
   const { isMenuOpen } = useMenu();
 
@@ -64,7 +60,6 @@ function ChessGame() {
       const lastSegment = pathSegments[pathSegments.length - 1];
       if (lastSegment === "computer") {
         setGameMode("playerVsComputer");
-        console.log("?!");
         const newGame = new Game("playerVsComputer", "white", 1000);
         setGame(newGame);
       }
@@ -83,12 +78,13 @@ function ChessGame() {
     const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
     if (game.getGameMode() === "playerVsComputer") {
       if (game.makeMove(moveData)) {
-        console.log(gameMode);
+        console.log(moveData);
         setFen(game.getCurrentBoard());
         (async () => {
           const computerMove = await game.makeComputerMove();
           console.log(computerMove);
           setFen(game.getCurrentBoard());
+          setCurrentPice(null);
         })();
       }
       return true;
@@ -98,8 +94,10 @@ function ChessGame() {
       if (room) {
         socket.emit("move", { move: moveData, room });
       }
+      setCurrentPice(null);
       return true;
     }
+    setCurrentPice(null);
     return false;
   }
 
@@ -113,23 +111,49 @@ function ChessGame() {
 
   // 타이머 갱신
   useEffect(() => {
+    if (!game) return;
+    const intervalTime = game.getGameMode() === "playerVsComputer" ? 2000 : 200;
     const interval = setInterval(() => {
-      if (game) {
-        const timeoutPlayer = game.checkTimeout();
-        if (timeoutPlayer) {
-          setOver(
-            `Time's up! ${timeoutPlayer === "white" ? "Black" : "White"} wins!`
-          );
-          game.handleGameOver();
-          clearInterval(interval);
-        } else {
-          setTimers(game.getTimers());
+      if (game.getGameMode() === "playerVsComputer") {
+        setFen(game.getCurrentBoard());
+      } else {
+        if (game) {
+          const timeoutPlayer = game.checkTimeout();
+          if (timeoutPlayer) {
+            setOver(
+              `Time's up! ${
+                timeoutPlayer === "white" ? "Black" : "White"
+              } wins!`
+            );
+            game.handleGameOver();
+            clearInterval(interval);
+          } else {
+            setTimers(game.getTimers());
+          }
         }
       }
-    }, 200);
+    }, intervalTime);
 
     return () => clearInterval(interval);
   }, [game]);
+
+  function handlePieceClick(square: any, piece: any) {
+    const canMoveSquares = game.handleSquareClick(piece);
+    setCanMoveSquares(canMoveSquares);
+    setCurrentPice(piece);
+  }
+
+  function handleSquareClick(square: any, piece: any) {
+    if (currentPiece !== null) {
+      console.log(currentPiece);
+      onDrop(currentPiece, square);
+      setCanMoveSquares({});
+    }
+  }
+
+  function onPieceDragEnd(piece: any, sourceSquare: any) {
+    setCanMoveSquares({});
+  }
 
   return (
     <div
@@ -155,6 +179,11 @@ function ChessGame() {
           position={fen}
           onPieceDrop={onDrop}
           boardOrientation={game.getUserColor() === "white" ? "white" : "black"}
+          areArrowsAllowed={true}
+          onSquareClick={handleSquareClick}
+          onPieceClick={handlePieceClick}
+          customSquareStyles={canMoveSquares}
+          onPieceDragEnd={onPieceDragEnd}
         />
       </div>
 
