@@ -16,7 +16,7 @@ export default function PlayComputer() {
     } else if (num === 1) {
       color = "black";
     } else if (num === 2) {
-      Math.random() < 0.5 ? (color = "white") : (color = "black");
+      color = Math.random() < 0.5 ? "white" : "black";
     }
     const newGame = new Game("playerVsComputer", color, 0);
     setGame(newGame);
