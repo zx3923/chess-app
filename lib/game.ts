@@ -1,7 +1,7 @@
 import Timer from "./timer";
 import { Chess } from "chess.js";
 
-type Player = "white" | "black";
+export type Player = "white" | "black";
 export type GameMode = "playerVsPlayer" | "playerVsComputer" | null;
 
 interface Move {
@@ -37,8 +37,14 @@ class Game {
       this.isGameStarted = true;
       this.isGameOver = false;
       if (this.getGameMode() !== "playerVsComputer") {
-        console.log(this.getGameMode());
         this.timers[this.currentPlayer].start();
+      } else if (this.getGameMode() === "playerVsComputer") {
+        if (this.getUserColor() === "black") {
+          async () => {
+            const computerMove = await this.makeComputerMove();
+            console.log(computerMove);
+          };
+        }
       }
       console.log("Game started");
     }
@@ -155,6 +161,10 @@ class Game {
 
   public getGameMode(): string | null {
     return this.gameMode;
+  }
+
+  public getUserColor(): string {
+    return this.userColor;
   }
 }
 

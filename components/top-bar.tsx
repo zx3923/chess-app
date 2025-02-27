@@ -64,8 +64,8 @@ export default function TopBar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0">
-              체스 아이콘
+            <Link href="/" className="flex-shrink-0 size-6">
+              <img src="/main_chess.png" alt="main_chess" />
             </Link>
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">

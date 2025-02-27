@@ -4,6 +4,7 @@ import { socket } from "@/lib/socket";
 import { useState, useEffect, Suspense } from "react";
 import { Chessboard } from "react-chessboard";
 import { usePathname, useSearchParams } from "next/navigation";
+import { ClockIcon } from "@heroicons/react/24/outline";
 
 import "./chess-board.css";
 import { msToSec } from "@/lib/timer";
@@ -24,7 +25,7 @@ function ChessGame() {
   const path = usePathname();
   const room = searchParams.get("room");
 
-  const [userColor, setUserColor] = useState("white");
+  // const [userColor, setUserColor] = useState("white");
   const [timers, setTimers] = useState({ white: 300000, black: 300000 });
   const { isMenuOpen } = useMenu();
 
@@ -44,7 +45,7 @@ function ChessGame() {
               );
               if (player) {
                 const color = player.color;
-                setUserColor(color);
+                // setUserColor(color);
                 const newGame = new Game(gameMode, color, 10000);
                 setGame(newGame);
               }
@@ -63,6 +64,7 @@ function ChessGame() {
       const lastSegment = pathSegments[pathSegments.length - 1];
       if (lastSegment === "computer") {
         setGameMode("playerVsComputer");
+        console.log("?!");
         const newGame = new Game("playerVsComputer", "white", 1000);
         setGame(newGame);
       }
@@ -77,7 +79,7 @@ function ChessGame() {
 
   // 체스말움직임
   function onDrop(sourceSquare: any, targetSquare: any) {
-    if (game.getCurrentPlayer() !== userColor) return false;
+    if (game.getCurrentPlayer() !== game.getUserColor()) return false;
     const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
     if (game.getGameMode() === "playerVsComputer") {
       if (game.makeMove(moveData)) {
@@ -135,29 +137,39 @@ function ChessGame() {
         isMenuOpen ? "max-[768px]:mt-72" : ""
       }`}
     >
-      <div className="text-white">
-        {userColor === "white" ? "black" : "white"}
-        <div>
-          {userColor === "black"
-            ? msToSec(timers.white)
-            : msToSec(timers.black)}
-        </div>
+      <div className="text-white flex justify-between items-center w-full mb-4">
+        {game.getUserColor() === "white" ? "black" : "white"}
+        {gameMode === "playerVsComputer" ? null : (
+          <div className="flex gap-6 bg-neutral-700 p-2 px-4 rounded">
+            <ClockIcon className="size-6" />
+            <p>
+              {game.getUserColor() === "black"
+                ? msToSec(timers.white)
+                : msToSec(timers.black)}
+            </p>
+          </div>
+        )}
       </div>
       <div className="w-96 sm:w-[450px] md:w-[620px]">
         <Chessboard
           position={fen}
           onPieceDrop={onDrop}
-          boardOrientation={userColor === "white" ? "white" : "black"}
+          boardOrientation={game.getUserColor() === "white" ? "white" : "black"}
         />
       </div>
 
-      <div className="text-white">
-        {userColor}
-        <div>
-          {userColor === "white"
-            ? msToSec(timers.white)
-            : msToSec(timers.black)}
-        </div>
+      <div className="text-white flex justify-between items-center w-full mt-4">
+        {game.getUserColor()}
+        {gameMode === "playerVsComputer" ? null : (
+          <div className="flex gap-6 bg-white p-2 px-4 rounded text-black">
+            <ClockIcon className="size-6" />
+            <p>
+              {game.getUserColor() === "white"
+                ? msToSec(timers.white)
+                : msToSec(timers.black)}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
