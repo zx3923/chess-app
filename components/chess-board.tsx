@@ -137,13 +137,16 @@ function ChessGame() {
     return () => clearInterval(interval);
   }, [game]);
 
-  function handlePieceClick(piece: any) {
-    const canMoveSquares = game.handleSquareClick(piece);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function handlePieceClick(piece: any, square: any) {
+    console.log(square);
+    const canMoveSquares = game.handleSquareClick(square);
     setCanMoveSquares(canMoveSquares);
-    setCurrentPice(piece);
+    setCurrentPice(square);
   }
 
-  function handleSquareClick(square: any) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function handleSquareClick(square: any, piece: any) {
     if (currentPiece !== null) {
       console.log(currentPiece);
       onDrop(currentPiece, square);
