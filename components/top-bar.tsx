@@ -9,6 +9,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { useUser } from "@/lib/context/UserContext";
 import { useMenu } from "@/lib/context/MenuContext";
+import Image from "next/image";
 
 export default function TopBar() {
   // const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -65,7 +66,12 @@ export default function TopBar() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 size-6">
-              <img src="/main_chess.png" alt="main_chess" />
+              <Image
+                src="/main_chess.png"
+                alt="main_chess"
+                width={100}
+                height={100}
+              />
             </Link>
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">

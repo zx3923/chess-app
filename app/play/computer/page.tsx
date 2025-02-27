@@ -2,6 +2,7 @@
 
 import { useChess } from "@/lib/context/ChessContext ";
 import Game, { Player } from "@/lib/game";
+import Image from "next/image";
 import { useState } from "react";
 
 export default function PlayComputer() {
@@ -33,7 +34,12 @@ export default function PlayComputer() {
             className="size-8 bg-white rounded"
             onClick={() => handleColorChange(0)}
           >
-            <img src="/king_white.png" alt="" />
+            <Image
+              src="/king_white.png"
+              alt="king_white"
+              width={100}
+              height={100}
+            />
           </button>
         </div>
         <div
@@ -45,7 +51,12 @@ export default function PlayComputer() {
             className="size-8 bg-white rounded"
             onClick={() => handleColorChange(2)}
           >
-            <img src="/chess_board.png" alt="" />
+            <Image
+              src="/chess_board.png"
+              alt="chess_board"
+              width={100}
+              height={100}
+            />
           </button>
         </div>
         <div
@@ -57,7 +68,12 @@ export default function PlayComputer() {
             className="size-8 bg-white rounded"
             onClick={() => handleColorChange(1)}
           >
-            <img src="/king_black.png" alt="" />
+            <Image
+              src="/king_black.png"
+              alt="king_black"
+              width={100}
+              height={100}
+            />
           </button>
         </div>
       </div>

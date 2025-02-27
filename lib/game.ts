@@ -42,6 +42,7 @@ class Game {
       } else if (this.getGameMode() === "playerVsComputer") {
         if (this.getUserColor() === "black") {
           (async () => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const computerMove = await this.makeComputerMove();
             console.log(this.currentPlayer);
             this.switchPlayer();

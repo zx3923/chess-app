@@ -137,21 +137,20 @@ function ChessGame() {
     return () => clearInterval(interval);
   }, [game]);
 
-  function handlePieceClick(square: any, piece: any) {
+  function handlePieceClick(piece: any) {
     const canMoveSquares = game.handleSquareClick(piece);
     setCanMoveSquares(canMoveSquares);
     setCurrentPice(piece);
   }
 
-  function handleSquareClick(square: any, piece: any) {
+  function handleSquareClick(square: any) {
     if (currentPiece !== null) {
       console.log(currentPiece);
       onDrop(currentPiece, square);
       setCanMoveSquares({});
     }
   }
-
-  function onPieceDragEnd(piece: any, sourceSquare: any) {
+  function onPieceDragEnd() {
     setCanMoveSquares({});
   }
 
