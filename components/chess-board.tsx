@@ -80,12 +80,17 @@ function ChessGame() {
       if (game.makeMove(moveData)) {
         console.log(moveData);
         setFen(game.getCurrentBoard());
+        setCanMoveSquares({});
+        game.savePieceSquare("");
         (async () => {
           const computerMove = await game.makeComputerMove();
           console.log(computerMove);
           setFen(game.getCurrentBoard());
           // setCurrentPice(null);
         })();
+      } else {
+        setCanMoveSquares({});
+        game.savePieceSquare("");
       }
       return true;
     }
@@ -144,6 +149,7 @@ function ChessGame() {
     }
     // 상대 피스 클릭시
     if (game.getUserColor()[0] !== piece[0]) return;
+
     game.savePieceSquare(square);
     const canMoveSquares = game.handleSquareClick(square);
     setCanMoveSquares(canMoveSquares);
@@ -154,26 +160,8 @@ function ChessGame() {
     if (!game.getIsGameStarted() || game.getIsGameOver()) {
       return;
     }
-    // 피스가 없는 칸 클릭시
-    console.log(piece);
-    console.log(game.getCurrentPieceSquare());
-    if (piece === undefined) {
-      const keys = Object.keys(canMoveSquares);
-      // 선택한 칸이 가능한 움직임이 아닐 때
-      if (!keys.includes(square)) {
-        setCanMoveSquares({});
-        game.savePieceSquare("");
-        return;
-      }
-      if (game.getCurrentPieceSquare() !== "") {
-        onDrop(game.getCurrentPieceSquare(), square);
-        setCanMoveSquares({});
-        game.savePieceSquare("");
-      }
-      setCanMoveSquares({});
-      game.savePieceSquare("");
-      return;
-    }
+    if (game.getCurrentPieceSquare() === square) return;
+    onDrop(game.getCurrentPieceSquare(), square);
   }
 
   function onPieceDragEnd() {

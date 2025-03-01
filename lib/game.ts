@@ -65,15 +65,21 @@ class Game {
   }
 
   public makeMove(move: Move): boolean {
-    console.log("현재 턴 : ", this.chess.turn());
-    console.log("유저 : ", this.userColor[0]);
     if (!this.isGameStarted || this.isGameOver) {
       return false;
     }
     if (this.gameMode === "playerVsComputer") {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const result = this.chess.move(move);
-      return true;
+      try {
+        const result = this.chess.move(move);
+        if (result) {
+          return true;
+        } else {
+          return false;
+        }
+      } catch {
+        return false;
+      }
     } else {
       try {
         const result = this.chess.move(move);
@@ -136,7 +142,6 @@ class Game {
   ): Partial<Record<Square, { boxShadow: string }>> {
     // 현재 클릭한 칸에 있는 기물이 무엇인지 확인
     const moves = this.chess.moves({ square, verbose: true });
-    console.log(moves);
     const newMoveSquares: Partial<Record<Square, { boxShadow: string }>> = {};
     moves.forEach((move) => {
       newMoveSquares[move.to] = {
