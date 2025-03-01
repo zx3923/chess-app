@@ -19,6 +19,7 @@ class Game {
   private timers: { [key in Player]: Timer }; // 각 플레이어의 타이머
   private isGameOver: boolean;
   private isGameStarted: boolean;
+  private currentPiece: string;
 
   constructor(gameMode: GameMode, userColor: Player, startingTime: number) {
     this.chess = new Chess();
@@ -31,6 +32,7 @@ class Game {
     };
     this.isGameOver = false;
     this.isGameStarted = false;
+    this.currentPiece = "";
   }
 
   public play(): void {
@@ -129,6 +131,21 @@ class Game {
     }
   }
 
+  public handleSquareClick(
+    square: Square
+  ): Partial<Record<Square, { boxShadow: string }>> {
+    // 현재 클릭한 칸에 있는 기물이 무엇인지 확인
+    const moves = this.chess.moves({ square, verbose: true });
+    console.log(moves);
+    const newMoveSquares: Partial<Record<Square, { boxShadow: string }>> = {};
+    moves.forEach((move) => {
+      newMoveSquares[move.to] = {
+        boxShadow: "inset 0 0 1px 6px rgba(255,255,255)",
+      };
+    });
+    return newMoveSquares;
+  }
+
   public checkTimeout(): Player | null {
     if (this.timers.white.getTime() <= 0) return "white";
     if (this.timers.black.getTime() <= 0) return "black";
@@ -137,6 +154,10 @@ class Game {
 
   private switchPlayer(): void {
     this.currentPlayer = this.currentPlayer === "white" ? "black" : "white";
+  }
+
+  public savePieceSquare(piece: string): void {
+    this.currentPiece = piece;
   }
 
   public getCurrentBoard(): string {
@@ -170,18 +191,8 @@ class Game {
     return this.userColor;
   }
 
-  public handleSquareClick(
-    square: Square
-  ): Partial<Record<Square, { boxShadow: string }>> {
-    // 현재 클릭한 칸에 있는 기물이 무엇인지 확인
-    const moves = this.chess.moves({ square, verbose: true });
-    const newMoveSquares: Partial<Record<Square, { boxShadow: string }>> = {};
-    moves.forEach((move) => {
-      newMoveSquares[move.to] = {
-        boxShadow: "inset 0 0 1px 6px rgba(255,255,255)",
-      };
-    });
-    return newMoveSquares;
+  public getCurrentPieceSquare(): string {
+    return this.currentPiece;
   }
 }
 

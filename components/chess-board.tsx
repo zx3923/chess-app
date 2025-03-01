@@ -21,7 +21,7 @@ function ChessGame() {
   const path = usePathname();
   const room = searchParams.get("room");
   const [canMoveSquares, setCanMoveSquares] = useState({});
-  const [currentPiece, setCurrentPice] = useState(null);
+  // const [currentPiece, setCurrentPice] = useState(null);
   const [timers, setTimers] = useState({ white: 300000, black: 300000 });
   const { isMenuOpen } = useMenu();
 
@@ -84,7 +84,7 @@ function ChessGame() {
           const computerMove = await game.makeComputerMove();
           console.log(computerMove);
           setFen(game.getCurrentBoard());
-          setCurrentPice(null);
+          // setCurrentPice(null);
         })();
       }
       return true;
@@ -94,10 +94,10 @@ function ChessGame() {
       if (room) {
         socket.emit("move", { move: moveData, room });
       }
-      setCurrentPice(null);
+      // setCurrentPice(null);
       return true;
     }
-    setCurrentPice(null);
+    // setCurrentPice(null);
     return false;
   }
 
@@ -139,20 +139,43 @@ function ChessGame() {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handlePieceClick(piece: any, square: any) {
-    console.log(square);
+    if (!game.getIsGameStarted() || game.getIsGameOver()) {
+      return;
+    }
+    // 상대 피스 클릭시
+    if (game.getUserColor()[0] !== piece[0]) return;
+    game.savePieceSquare(square);
     const canMoveSquares = game.handleSquareClick(square);
     setCanMoveSquares(canMoveSquares);
-    setCurrentPice(square);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleSquareClick(square: any, piece: any) {
-    if (currentPiece !== null) {
-      console.log(currentPiece);
-      onDrop(currentPiece, square);
+    if (!game.getIsGameStarted() || game.getIsGameOver()) {
+      return;
+    }
+    // 피스가 없는 칸 클릭시
+    console.log(piece);
+    console.log(game.getCurrentPieceSquare());
+    if (piece === undefined) {
+      const keys = Object.keys(canMoveSquares);
+      // 선택한 칸이 가능한 움직임이 아닐 때
+      if (!keys.includes(square)) {
+        setCanMoveSquares({});
+        game.savePieceSquare("");
+        return;
+      }
+      if (game.getCurrentPieceSquare() !== "") {
+        onDrop(game.getCurrentPieceSquare(), square);
+        setCanMoveSquares({});
+        game.savePieceSquare("");
+      }
       setCanMoveSquares({});
+      game.savePieceSquare("");
+      return;
     }
   }
+
   function onPieceDragEnd() {
     setCanMoveSquares({});
   }
