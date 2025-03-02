@@ -36,7 +36,7 @@ export default function PlayComputer() {
   };
 
   return (
-    <div className="bg-neutral-900 h-[700px] w-[300px] text-white max-[768px]:w-full rounded flex flex-col justify-center items-center gap-4">
+    <div className="bg-neutral-900 h-[700px] w-[300px] text-white max-[768px]:w-full rounded flex flex-col justify-center items-center gap-4 mt-24 max-[768px]:mt-0">
       {isStarted ? null : (
         <div className="flex gap-2">
           <div

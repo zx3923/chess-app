@@ -20,6 +20,7 @@ class Game {
   private isGameOver: boolean;
   private isGameStarted: boolean;
   private currentPiece: string;
+  private winner: string;
 
   constructor(gameMode: GameMode, userColor: Player, startingTime: number) {
     this.chess = new Chess();
@@ -33,6 +34,7 @@ class Game {
     this.isGameOver = false;
     this.isGameStarted = false;
     this.currentPiece = "";
+    this.winner = "";
   }
 
   public play(): void {
@@ -46,8 +48,6 @@ class Game {
           (async () => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const computerMove = await this.makeComputerMove();
-            console.log(this.currentPlayer);
-            this.switchPlayer();
           })();
         }
       }
@@ -73,6 +73,7 @@ class Game {
       try {
         const result = this.chess.move(move);
         if (result) {
+          this.switchPlayer();
           return true;
         } else {
           return false;
@@ -89,6 +90,7 @@ class Game {
           this.timers[this.currentPlayer].start(); // 다음 플레이어의 타이머 시작
 
           if (this.chess.isGameOver()) {
+            this.handleGameOver();
             if (this.chess.isCheckmate()) {
               console.log(
                 `Checkmate! ${
@@ -118,6 +120,10 @@ class Game {
       maxThinkingTime: 1,
     });
     const move = this.chess.move({ from: data.from, to: data.to });
+    this.switchPlayer();
+    if (this.chess.isGameOver()) {
+      this.handleGameOver();
+    }
     return move;
   }
 
@@ -130,7 +136,9 @@ class Game {
           this.currentPlayer === "white" ? "black" : "white"
         }`
       );
+      this.winner = this.currentPlayer === "white" ? "black" : "white";
     } else if (this.chess.isDraw()) {
+      this.winner = "draw";
       console.log("Draw");
     } else {
       console.log("Game over");
@@ -198,6 +206,10 @@ class Game {
 
   public getCurrentPieceSquare(): string {
     return this.currentPiece;
+  }
+
+  public getWinner(): string {
+    return this.winner;
   }
 }
 

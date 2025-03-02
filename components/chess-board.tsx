@@ -11,6 +11,7 @@ import { msToSec } from "@/lib/timer";
 import Game, { GameMode } from "@/lib/game";
 import { useMenu } from "@/lib/context/MenuContext";
 import { useChess } from "@/lib/context/ChessContext ";
+import { GameOverModal } from "./GameOVerModal";
 
 function ChessGame() {
   const [gameMode, setGameMode] = useState<GameMode>(null);
@@ -41,7 +42,6 @@ function ChessGame() {
               );
               if (player) {
                 const color = player.color;
-                // setUserColor(color);
                 const newGame = new Game(gameMode, color, 10000);
                 setGame(newGame);
               }
@@ -170,7 +170,7 @@ function ChessGame() {
 
   return (
     <div
-      className={`flex items-center justify-center flex-col max-[768px]:mt-24 ${
+      className={`flex items-center justify-center flex-col mt-24 ${
         isMenuOpen ? "max-[768px]:mt-72" : ""
       }`}
     >
@@ -213,6 +213,9 @@ function ChessGame() {
           </div>
         )}
       </div>
+      {game.getIsGameOver() ? (
+        <GameOverModal winner={game.getWinner()} />
+      ) : null}
     </div>
   );
 }
