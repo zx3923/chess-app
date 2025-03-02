@@ -4,7 +4,7 @@ interface GameResultModalProps {
   winner: string;
 }
 
-export function GameOverModal({ winner }: GameResultModalProps) {
+export default function GameResultModal({ winner }: GameResultModalProps) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 text-white">
       <div className="relative bg-neutral-800 rounded-2xl shadow-xl p-6 w-full max-w-md">

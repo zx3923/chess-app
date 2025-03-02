@@ -9,7 +9,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import "./chess-board.css";
 import { msToSec } from "@/lib/timer";
 import Game, { GameMode } from "@/lib/game";
-import { GameOverModal } from "./GameOVerModal";
+import GameResultModal from "./GameResultModal";
 import { useMenu } from "@/lib/context/MenuContext";
 import { useChess } from "@/lib/context/ChessContext ";
 
@@ -214,7 +214,7 @@ function ChessGame() {
         )}
       </div>
       {game.getIsGameOver() ? (
-        <GameOverModal winner={game.getWinner()} />
+        <GameResultModal winner={game.getWinner()} />
       ) : null}
     </div>
   );
