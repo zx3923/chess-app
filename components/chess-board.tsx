@@ -9,9 +9,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 import "./chess-board.css";
 import { msToSec } from "@/lib/timer";
 import Game, { GameMode } from "@/lib/game";
+import { GameOverModal } from "./GameOVerModal";
 import { useMenu } from "@/lib/context/MenuContext";
 import { useChess } from "@/lib/context/ChessContext ";
-import { GameOverModal } from "./GameOVerModal";
 
 function ChessGame() {
   const [gameMode, setGameMode] = useState<GameMode>(null);
