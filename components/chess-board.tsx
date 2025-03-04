@@ -17,7 +17,7 @@ function ChessGame() {
   const [gameMode, setGameMode] = useState<GameMode>(null);
   const { game, setGame } = useChess();
   const [fen, setFen] = useState(game.getCurrentBoard());
-  const [over, setOver] = useState("");
+  const [over, setOver] = useState(false);
   const searchParams = useSearchParams();
   const path = usePathname();
   const room = searchParams.get("room");
@@ -25,6 +25,7 @@ function ChessGame() {
   // const [currentPiece, setCurrentPice] = useState(null);
   const [timers, setTimers] = useState({ white: 300000, black: 300000 });
   const { isMenuOpen } = useMenu();
+  const [isGameOver, setIsGameOver] = useState(false);
 
   // 초기 방 정보
   useEffect(() => {
@@ -51,7 +52,8 @@ function ChessGame() {
           };
           fetchUserData();
         } else {
-          setOver("Failed to fetch room");
+          // setOver("Failed to fetch room");
+          setOver(true);
           console.log(over);
         }
       });
@@ -66,11 +68,24 @@ function ChessGame() {
     }
   }, [room, gameMode, path, setGame]);
 
+  // useEffect(() => {
+  //   if (game.getIsGameOver()) {
+  //     // setOver("Game Over");
+  //     setOver(true);
+  //   }
+  // }, [fen, game]);
+
   useEffect(() => {
-    if (game.getIsGameOver()) {
-      setOver("Game Over");
-    }
-  }, [fen, game]);
+    const handleGameOver = () => {
+      setIsGameOver(true);
+    };
+
+    game.onGameOver(handleGameOver);
+
+    return () => {
+      game.offGameOver(handleGameOver);
+    };
+  }, [game]);
 
   // 체스말움직임
   function onDrop(sourceSquare: any, targetSquare: any) {
@@ -81,7 +96,7 @@ function ChessGame() {
         console.log(moveData);
         setFen(game.getCurrentBoard());
         setCanMoveSquares({});
-        game.savePieceSquare("");
+        game.setCurrentPieceSquare("");
         (async () => {
           const computerMove = await game.makeComputerMove();
           console.log(computerMove);
@@ -90,7 +105,7 @@ function ChessGame() {
         })();
       } else {
         setCanMoveSquares({});
-        game.savePieceSquare("");
+        game.setCurrentPieceSquare("");
       }
       return true;
     }
@@ -125,11 +140,13 @@ function ChessGame() {
         if (game) {
           const timeoutPlayer = game.checkTimeout();
           if (timeoutPlayer) {
-            setOver(
-              `Time's up! ${
-                timeoutPlayer === "white" ? "Black" : "White"
-              } wins!`
-            );
+            // setOver(
+            //   `Time's up! ${
+            //     timeoutPlayer === "white" ? "Black" : "White"
+            //   } wins!`
+            // );
+
+            setOver(true);
             game.handleGameOver();
             clearInterval(interval);
           } else {
@@ -150,7 +167,7 @@ function ChessGame() {
     // 상대 피스 클릭시
     if (game.getUserColor()[0] !== piece[0]) return;
 
-    game.savePieceSquare(square);
+    game.setCurrentPieceSquare(square);
     const canMoveSquares = game.handleSquareClick(square);
     setCanMoveSquares(canMoveSquares);
   }
@@ -167,6 +184,10 @@ function ChessGame() {
   function onPieceDragEnd() {
     setCanMoveSquares({});
   }
+
+  const onClose = () => {
+    setIsGameOver(false);
+  };
 
   return (
     <div
@@ -213,8 +234,8 @@ function ChessGame() {
           </div>
         )}
       </div>
-      {game.getIsGameOver() ? (
-        <GameResultModal winner={game.getWinner()} />
+      {isGameOver ? (
+        <GameResultModal winner={game.getWinner()} onClose={onClose} />
       ) : null}
     </div>
   );

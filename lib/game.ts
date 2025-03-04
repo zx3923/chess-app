@@ -4,6 +4,7 @@ import { Square } from "chess.js";
 
 export type Player = "white" | "black";
 export type GameMode = "playerVsPlayer" | "playerVsComputer" | null;
+type Callback = () => void;
 
 interface Move {
   from: string;
@@ -21,6 +22,8 @@ class Game {
   private isGameStarted: boolean;
   private currentPiece: string;
   private winner: string;
+  private gameOverListeners: Callback[] = [];
+  private isSurrender: boolean;
 
   constructor(gameMode: GameMode, userColor: Player, startingTime: number) {
     this.chess = new Chess();
@@ -35,6 +38,7 @@ class Game {
     this.isGameStarted = false;
     this.currentPiece = "";
     this.winner = "";
+    this.isSurrender = false;
   }
 
   public play(): void {
@@ -64,6 +68,12 @@ class Game {
     }
   }
 
+  public surrender(): void {
+    this.isSurrender = true;
+    this.handleGameOver();
+  }
+
+  // 체스 말 움직임
   public makeMove(move: Move): boolean {
     if (!this.isGameStarted || this.isGameOver) {
       return false;
@@ -113,7 +123,11 @@ class Game {
     }
   }
 
+  // 컴퓨터 대결 시 컴퓨터 움직임
   public async makeComputerMove(): Promise<any> {
+    const sleep = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+    await sleep(1000); // 1초 대기
     const data = await postChessApi({
       fen: this.chess.fen(),
       depth: 0,
@@ -127,24 +141,32 @@ class Game {
     return move;
   }
 
+  // 게임종료 핸들러
   public handleGameOver(): void {
     this.isGameOver = true;
     this.stop(); // Stop the game when it's over
-    if (this.chess.isCheckmate()) {
-      console.log(
-        `Checkmate! Winner: ${
-          this.currentPlayer === "white" ? "black" : "white"
-        }`
-      );
+    if (this.isSurrender) {
       this.winner = this.currentPlayer === "white" ? "black" : "white";
-    } else if (this.chess.isDraw()) {
-      this.winner = "draw";
-      console.log("Draw");
     } else {
-      console.log("Game over");
+      if (this.chess.isCheckmate()) {
+        console.log(
+          `Checkmate! Winner: ${
+            this.currentPlayer === "white" ? "black" : "white"
+          }`
+        );
+        this.winner = this.currentPlayer === "white" ? "black" : "white";
+      } else if (this.chess.isDraw()) {
+        this.winner = "draw";
+        console.log("Draw");
+      } else {
+        console.log("Game over");
+      }
     }
+
+    this.triggerGameOver();
   }
 
+  // 칸 클릭 핸들러 - 경로 미리 보여주기 용
   public handleSquareClick(
     square: Square
   ): Partial<Record<Square, { boxShadow: string }>> {
@@ -159,26 +181,61 @@ class Game {
     return newMoveSquares;
   }
 
+  // 시간종료 확인
   public checkTimeout(): Player | null {
     if (this.timers.white.getTime() <= 0) return "white";
     if (this.timers.black.getTime() <= 0) return "black";
     return null;
   }
 
+  public restartGame(): void {
+    if (!this.isGameStarted) {
+      this.isGameStarted = true;
+      this.isGameOver = false;
+      this.isSurrender = false;
+      this.chess.reset();
+    }
+    this.play();
+  }
+
+  // 게임종료 리스너
+  public onGameOver(callback: Callback) {
+    this.gameOverListeners.push(callback);
+  }
+
+  // 게임종료 리스너
+  public offGameOver(callback: Callback) {
+    const index = this.gameOverListeners.indexOf(callback);
+    if (index !== -1) {
+      this.gameOverListeners.splice(index, 1);
+    }
+  }
+
+  // 게임종료 리스너
+  private triggerGameOver() {
+    this.gameOverListeners.forEach((callback) => callback());
+  }
+
+  // 턴 변경
   private switchPlayer(): void {
     this.currentPlayer = this.currentPlayer === "white" ? "black" : "white";
   }
 
-  public savePieceSquare(piece: string): void {
-    this.currentPiece = piece;
-  }
-
+  // 보드상황
   public getCurrentBoard(): string {
     return this.chess.fen();
   }
 
+  // 현재 플레이어
   public getCurrentPlayer(): Player {
     return this.currentPlayer;
+  }
+
+  public setTimers(timer: Timer) {
+    this.timers = {
+      white: timer,
+      black: timer,
+    };
   }
 
   public getTimers(): { white: number; black: number } {
@@ -196,12 +253,25 @@ class Game {
     return this.isGameOver;
   }
 
+  public setGameMode(gameMode: GameMode) {
+    this.gameMode = gameMode;
+  }
+
   public getGameMode(): string | null {
     return this.gameMode;
   }
 
+  public setUserColor(userColor: Player) {
+    this.userColor = userColor;
+  }
+
   public getUserColor(): string {
     return this.userColor;
+  }
+
+  // 현재 클릭 한 말
+  public setCurrentPieceSquare(piece: string) {
+    this.currentPiece = piece;
   }
 
   public getCurrentPieceSquare(): string {

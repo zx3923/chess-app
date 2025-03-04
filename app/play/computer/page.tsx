@@ -1,20 +1,21 @@
 "use client";
 
-import { useChess } from "@/lib/context/ChessContext ";
-import Game, { Player } from "@/lib/game";
 import Image from "next/image";
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 import {
   FlagIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/solid";
 
+import Game, { Player } from "@/lib/game";
+import { useChess } from "@/lib/context/ChessContext ";
+
 export default function PlayComputer() {
   const { game, setGame } = useChess();
   const [selectColor, setSelectColor] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
+  const [isGameOver, setIsGameOver] = useState(false);
 
   const handleColorChange = (num: number) => {
     setSelectColor(num);
@@ -26,14 +27,39 @@ export default function PlayComputer() {
     } else if (num === 2) {
       color = Math.random() < 0.5 ? "white" : "black";
     }
+    game.setUserColor(color);
     const newGame = new Game("playerVsComputer", color, 0);
     setGame(newGame);
   };
 
-  const hnadleStartBtn = () => {
+  const hnandleStartBtn = () => {
     game.play();
-    setIsStarted(game.getIsGameStarted());
+    setIsStarted(true);
   };
+
+  const handleRestartBtn = () => {
+    game.restartGame();
+    setIsGameOver(false);
+  };
+
+  const handleSurrender = () => {
+    game.surrender();
+  };
+
+  // gameover 리스너
+  useEffect(() => {
+    const handleGameOver = () => {
+      setIsGameOver(true); // 게임 오버 시 상태 업데이트
+    };
+
+    // 게임 종료 리스너 등록
+    game.onGameOver(handleGameOver);
+
+    // 컴포넌트 언마운트 시 리스너 제거
+    return () => {
+      game.offGameOver(handleGameOver);
+    };
+  }, [game]);
 
   return (
     <div className="bg-neutral-900 h-[700px] w-[300px] text-white max-[768px]:w-full rounded flex flex-col justify-center items-center gap-4 mt-24 max-[768px]:mt-0">
@@ -94,7 +120,10 @@ export default function PlayComputer() {
       )}
       {isStarted ? (
         <div className="flex gap-4">
-          <button className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500">
+          <button
+            onClick={handleSurrender}
+            className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500"
+          >
             <FlagIcon className="size-5" />
           </button>
           <button className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500">
@@ -107,11 +136,19 @@ export default function PlayComputer() {
       ) : (
         <button
           className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
-          onClick={hnadleStartBtn}
+          onClick={hnandleStartBtn}
         >
           플레이
         </button>
       )}
+      {isGameOver ? (
+        <button
+          className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
+          onClick={handleRestartBtn}
+        >
+          재대결
+        </button>
+      ) : null}
     </div>
   );
 }
