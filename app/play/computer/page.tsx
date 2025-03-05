@@ -46,18 +46,15 @@ export default function PlayComputer() {
     game.surrender();
   };
 
-  // gameover 리스너
   useEffect(() => {
     const handleGameOver = () => {
-      setIsGameOver(true); // 게임 오버 시 상태 업데이트
+      setIsGameOver(true);
     };
 
-    // 게임 종료 리스너 등록
-    game.onGameOver(handleGameOver);
+    game.on("gameOver", handleGameOver); // 이벤트 리스너 등록
 
-    // 컴포넌트 언마운트 시 리스너 제거
     return () => {
-      game.offGameOver(handleGameOver);
+      game.off("gameOver", handleGameOver); // 클린업
     };
   }, [game]);
 

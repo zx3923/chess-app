@@ -1,7 +1,8 @@
-import Timer from "./timer";
+import Timer, { msToSec, secToMs, timeString } from "./timer";
 import { Chess } from "chess.js";
 import { Square } from "chess.js";
 import { soundPlayer } from "./sound";
+import EventEmitter from "events";
 
 export type Player = "white" | "black";
 export type GameMode = "playerVsPlayer" | "playerVsComputer" | null;
@@ -13,7 +14,7 @@ interface Move {
   promotion?: string;
 }
 
-class Game {
+class Game extends EventEmitter {
   private chess: Chess;
   private userColor: Player;
   private currentPlayer: Player;
@@ -23,10 +24,13 @@ class Game {
   private isGameStarted: boolean;
   private currentPiece: string;
   private winner: string;
-  private gameOverListeners: Callback[] = [];
+  // private gameOverListeners: Callback[] = [];
   private isSurrender: boolean;
+  private moveHistory: string[];
+  private gameDuration: Timer;
 
   constructor(gameMode: GameMode, userColor: Player, startingTime: number) {
+    super();
     this.chess = new Chess();
     this.userColor = userColor;
     this.currentPlayer = "white";
@@ -40,12 +44,16 @@ class Game {
     this.currentPiece = "";
     this.winner = "";
     this.isSurrender = false;
+    this.moveHistory = [];
+    this.gameDuration = new Timer(0);
   }
 
   public play(): void {
     if (!this.isGameStarted) {
+      soundPlayer.start();
       this.isGameStarted = true;
       this.isGameOver = false;
+      this.gameDuration.start();
       if (this.getGameMode() !== "playerVsComputer") {
         this.timers[this.currentPlayer].start();
       } else if (this.getGameMode() === "playerVsComputer") {
@@ -57,7 +65,6 @@ class Game {
         }
       }
       console.log("Game started");
-      soundPlayer.start();
     }
   }
 
@@ -86,6 +93,8 @@ class Game {
         const result = this.chess.move(move);
         if (result) {
           soundPlayer.playMoveSound(result);
+          console.log(this.chess.moveNumber());
+          console.log(this.chess.history());
           this.switchPlayer();
           return true;
         } else {
@@ -130,7 +139,7 @@ class Game {
   public async makeComputerMove(): Promise<any> {
     const sleep = (ms: number) =>
       new Promise((resolve) => setTimeout(resolve, ms));
-    await sleep(1000); // 1초 대기
+    await sleep(500);
     const data = await postChessApi({
       fen: this.chess.fen(),
       depth: 0,
@@ -138,9 +147,9 @@ class Game {
     });
     const move = this.chess.move({ from: data.from, to: data.to });
     if (move) {
-      soundPlayer.playMoveSound(move);
+      this.emit("computerMove", move);
+      this.switchPlayer();
     }
-    this.switchPlayer();
     if (this.chess.isGameOver()) {
       this.handleGameOver();
     }
@@ -150,6 +159,8 @@ class Game {
   // 게임종료 핸들러
   public handleGameOver(): void {
     this.isGameOver = true;
+    this.gameDuration.endGame();
+    this.gameDuration.stop();
     this.stop(); // Stop the game when it's over
     if (this.isSurrender) {
       this.winner = this.currentPlayer === "white" ? "black" : "white";
@@ -171,8 +182,8 @@ class Game {
         console.log("Game over");
       }
     }
-
-    this.triggerGameOver();
+    this.emit("gameOver");
+    // this.triggerGameOver();
   }
 
   // 칸 클릭 핸들러 - 경로 미리 보여주기 용
@@ -202,27 +213,28 @@ class Game {
       this.isSurrender = false;
       this.currentPlayer = "white";
       this.chess.reset();
+      this.gameDuration.reset();
     }
     this.play();
   }
 
-  // 게임종료 리스너
-  public onGameOver(callback: Callback) {
-    this.gameOverListeners.push(callback);
-  }
+  // // 게임종료 리스너
+  // public onGameOver(callback: Callback) {
+  //   this.gameOverListeners.push(callback);
+  // }
 
-  // 게임종료 리스너
-  public offGameOver(callback: Callback) {
-    const index = this.gameOverListeners.indexOf(callback);
-    if (index !== -1) {
-      this.gameOverListeners.splice(index, 1);
-    }
-  }
+  // // 게임종료 리스너
+  // public offGameOver(callback: Callback) {
+  //   const index = this.gameOverListeners.indexOf(callback);
+  //   if (index !== -1) {
+  //     this.gameOverListeners.splice(index, 1);
+  //   }
+  // }
 
-  // 게임종료 리스너
-  private triggerGameOver() {
-    this.gameOverListeners.forEach((callback) => callback());
-  }
+  // // 게임종료 리스너
+  // private triggerGameOver() {
+  //   this.gameOverListeners.forEach((callback) => callback());
+  // }
 
   // 턴 변경
   private switchPlayer(): void {
@@ -275,6 +287,25 @@ class Game {
 
   public getUserColor(): string {
     return this.userColor;
+  }
+
+  public setMoveHistory(): void {
+    this.moveHistory = this.chess.history();
+  }
+
+  public getMoveHistory(): string[] {
+    this.setMoveHistory();
+    return this.moveHistory;
+  }
+
+  public getIsSurrender(): boolean {
+    return this.isSurrender;
+  }
+
+  public getGameDuration() {
+    const totalGameTime = this.gameDuration.getTotalGameTime();
+    const totalGameTimeString = timeString(totalGameTime / 1000);
+    return totalGameTimeString;
   }
 
   // 현재 클릭 한 말
