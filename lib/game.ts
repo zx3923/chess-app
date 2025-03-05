@@ -1,6 +1,7 @@
 import Timer from "./timer";
 import { Chess } from "chess.js";
 import { Square } from "chess.js";
+import { soundPlayer } from "./sound";
 
 export type Player = "white" | "black";
 export type GameMode = "playerVsPlayer" | "playerVsComputer" | null;
@@ -56,6 +57,7 @@ class Game {
         }
       }
       console.log("Game started");
+      soundPlayer.start();
     }
   }
 
@@ -83,6 +85,7 @@ class Game {
       try {
         const result = this.chess.move(move);
         if (result) {
+          soundPlayer.playMoveSound(result);
           this.switchPlayer();
           return true;
         } else {
@@ -134,6 +137,9 @@ class Game {
       maxThinkingTime: 1,
     });
     const move = this.chess.move({ from: data.from, to: data.to });
+    if (move) {
+      soundPlayer.playMoveSound(move);
+    }
     this.switchPlayer();
     if (this.chess.isGameOver()) {
       this.handleGameOver();
@@ -147,6 +153,7 @@ class Game {
     this.stop(); // Stop the game when it's over
     if (this.isSurrender) {
       this.winner = this.currentPlayer === "white" ? "black" : "white";
+      soundPlayer.gameover();
     } else {
       if (this.chess.isCheckmate()) {
         console.log(
@@ -155,9 +162,11 @@ class Game {
           }`
         );
         this.winner = this.currentPlayer === "white" ? "black" : "white";
+        soundPlayer.checkmate();
       } else if (this.chess.isDraw()) {
         this.winner = "draw";
         console.log("Draw");
+        soundPlayer.stalemate();
       } else {
         console.log("Game over");
       }
@@ -190,9 +199,8 @@ class Game {
 
   public restartGame(): void {
     if (!this.isGameStarted) {
-      this.isGameStarted = true;
-      this.isGameOver = false;
       this.isSurrender = false;
+      this.currentPlayer = "white";
       this.chess.reset();
     }
     this.play();
