@@ -14,7 +14,7 @@ import GameResultModal from "./GameResultModal";
 import { useMenu } from "@/lib/context/MenuContext";
 import { useChess } from "@/lib/context/ChessContext ";
 import { Move } from "chess.js";
-import { soundPlayer } from "@/lib/sound";
+import useSoundPlayer from "@/lib/sound";
 
 function ChessGame() {
   const [gameMode, setGameMode] = useState<GameMode>(null);
@@ -30,6 +30,7 @@ function ChessGame() {
   const [timers, setTimers] = useState({ white: 300000, black: 300000 });
   const { isMenuOpen } = useMenu();
   const [isGameOver, setIsGameOver] = useState(false);
+  const { playSound, playMoveSound } = useSoundPlayer();
 
   // 초기 방 정보
   useEffect(() => {
@@ -74,23 +75,35 @@ function ChessGame() {
 
   useEffect(() => {
     const handleGameStart = () => {
-      soundPlayer.start();
+      // soundPlayer.start();
+      playSound("start");
       setFen(game.getCurrentBoard());
     };
 
     const handleGameOver = (isCheckmate: boolean) => {
       if (!isCheckmate) {
-        soundPlayer.gameover();
+        // soundPlayer.gameover();
+        playSound("gameover");
       }
       setIsGameOver(true);
     };
 
     const handleMove = (move: Move) => {
-      soundPlayer.playMoveSound(move);
+      // soundPlayer.playMoveSound(move);
+      if (move.captured) {
+        playMoveSound(move.san, true);
+      } else {
+        playMoveSound(move.san);
+      }
     };
 
     const handleComputerMove = (move: Move) => {
-      soundPlayer.playMoveSound(move);
+      // soundPlayer.playMoveSound(move);
+      if (move.captured) {
+        playMoveSound(move.san, true);
+      } else {
+        playMoveSound(move.san);
+      }
       setFen(game.getCurrentBoard());
     };
 

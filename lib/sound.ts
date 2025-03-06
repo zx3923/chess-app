@@ -1,91 +1,52 @@
-import { Move } from "chess.js";
+import { useState, useEffect } from "react";
 
-function sound() {
-  const path = "/audios/";
-  const audios = {
-    move: new Audio(path + "move.mp3"),
-    check: new Audio(path + "check.mp3"),
-    start: new Audio(path + "start.mp3"),
-    castle: new Audio(path + "castle.mp3"),
-    capture: new Audio(path + "capture.mp3"),
-    gameover: new Audio(path + "gameover.mp3"),
-    checkmate: new Audio(path + "checkmate.mp3"),
-    stalemate: new Audio(path + "stalemate.mp3"),
+const useSoundPlayer = () => {
+  const [audio, setAudio] = useState<any>(null); // audio 상태를 null로 초기화
+
+  useEffect(() => {
+    if (typeof window === "undefined") return; // 클라이언트에서만 실행
+
+    // 브라우저 환경에서만 Audio 객체를 생성
+    const newAudio = {
+      move: new Audio("/audios/move.mp3"),
+      capture: new Audio("/audios/capture.mp3"),
+      start: new Audio("/audios/start.mp3"),
+      castle: new Audio("/audios/castle.mp3"),
+      gameover: new Audio("/audios/gameover.mp3"),
+      checkmate: new Audio("/audios/checkmate.mp3"),
+      check: new Audio("/audios/check.mp3"),
+      stalemate: new Audio("/audios/stalemate.mp3"),
+    };
+
+    // 오디오 객체가 브라우저에서 생성되면 상태를 업데이트
+    setAudio(newAudio);
+
+    // Cleanup 함수 (컴포넌트가 언마운트될 때 오디오 객체 정리)
+    return () => {
+      Object.values(newAudio).forEach((audio: HTMLAudioElement) =>
+        audio.pause()
+      );
+    };
+  }, []); // 빈 배열을 사용하여 처음 한번만 실행
+
+  // playMoveSound 함수
+  const playMoveSound = (san: string, captured?: boolean) => {
+    if (!audio) return; // audio가 아직 초기화되지 않았다면 아무것도 하지 않음
+
+    if (san.startsWith("O-O")) return audio.castle.play(); // 캐슬링
+    if (san.endsWith("+")) return audio.check.play(); // 체크
+    if (san.endsWith("#")) return audio.checkmate.play(); // 체크메이트
+    if (captured) return audio.capture.play(); // 포획
+    return audio.move.play(); // 일반 이동
   };
 
-  const vol = 1;
-  audios.move.volume = vol;
-  audios.check.volume = vol;
-  audios.start.volume = vol;
-  audios.castle.volume = vol;
-  audios.capture.volume = vol;
-  audios.gameover.volume = vol;
-  audios.checkmate.volume = vol;
-  audios.stalemate.volume = vol;
-
-  function move() {
-    audios.move.play();
-  }
-
-  function capture() {
-    audios.capture.play();
-  }
-
-  function castle() {
-    audios.castle.play();
-  }
-
-  function start() {
-    audios.start.play();
-  }
-
-  function gameover() {
-    audios.gameover.play();
-  }
-
-  function check() {
-    audios.check.play();
-  }
-
-  function checkmate() {
-    audios.checkmate.play();
-  }
-
-  function stalemate() {
-    audios.stalemate.play();
-  }
-
-  function stop() {
-    audios.move.pause();
-    audios.check.pause();
-    audios.start.pause();
-    audios.castle.pause();
-    audios.capture.pause();
-    audios.gameover.pause();
-    audios.checkmate.pause();
-    audios.stalemate.pause();
-  }
-
-  function playMoveSound(result: Move) {
-    if (result.san.startsWith("O-O")) return castle();
-    if (result.san.endsWith("+")) return check();
-    if (result.san.endsWith("#")) return checkmate();
-    if (result.captured) return capture();
-    return move();
-  }
-
-  return {
-    stop,
-    move,
-    check,
-    start,
-    castle,
-    capture,
-    gameover,
-    checkmate,
-    stalemate,
-    playMoveSound,
+  const playSound = (soundName: keyof typeof audio) => {
+    if (audio && audio[soundName]) {
+      audio[soundName].play(); // 해당 사운드 재생
+    }
   };
-}
 
-export const soundPlayer = sound();
+  return { playMoveSound, playSound };
+};
+
+export default useSoundPlayer;
