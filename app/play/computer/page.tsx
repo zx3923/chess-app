@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FlagIcon,
   ChevronLeftIcon,
@@ -16,6 +16,49 @@ export default function PlayComputer() {
   const [selectColor, setSelectColor] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const [notation, setNotation] = useState<
+    { moveNumber: number; whiteMove: string; blackMove: string }[]
+  >([]);
+
+  // 스크롤 액션
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [notation]);
+
+  useEffect(() => {
+    const handleGameOver = () => {
+      setIsGameOver(true);
+    };
+
+    const handleMove = (move: any) => {
+      setNotation((prev) => {
+        if (move.color === "w") {
+          const movedata = {
+            moveNumber: prev.length + 1,
+            whiteMove: move.san,
+            blackMove: "",
+          };
+          return [...prev, movedata];
+        } else {
+          const updated = [...prev];
+          updated[updated.length - 1].blackMove = move.san;
+          return updated;
+        }
+      });
+    };
+
+    game.on("gameOver", handleGameOver);
+    game.on("move", handleMove);
+
+    return () => {
+      game.off("gameOver", handleGameOver);
+      game.off("move", handleMove);
+    };
+  }, [game]);
 
   const handleColorChange = (num: number) => {
     setSelectColor(num);
@@ -40,27 +83,53 @@ export default function PlayComputer() {
   const handleRestartBtn = () => {
     game.restartGame();
     setIsGameOver(false);
+    setNotation([]);
   };
 
   const handleSurrender = () => {
     game.surrender();
   };
 
-  useEffect(() => {
-    const handleGameOver = () => {
-      setIsGameOver(true);
-    };
-
-    game.on("gameOver", handleGameOver); // 이벤트 리스너 등록
-
-    return () => {
-      game.off("gameOver", handleGameOver); // 클린업
-    };
-  }, [game]);
-
   return (
     <div className="bg-neutral-900 h-[700px] w-[300px] text-white max-[768px]:w-full rounded flex flex-col justify-center items-center gap-4 mt-24 max-[768px]:mt-0">
-      {isStarted ? null : (
+      {isStarted ? (
+        <div className="w-full max-w-md mx-auto p-4 bg-neutral-900 rounded-lg shadow text-white">
+          <h2 className="text-xl font-bold mb-4 text-center">체스 기보</h2>
+          <div className="rounded overflow-hidden">
+            <div ref={scrollRef} className="max-h-[300px] overflow-y-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-neutral-800">
+                    <th className="py-2 px-4 text-left font-medium text-gray-200 w-1/5">
+                      #
+                    </th>
+                    <th className="py-2 px-4 text-left font-medium text-gray-200 w-2/5">
+                      백
+                    </th>
+                    <th className="py-2 px-4 text-left font-medium text-gray-200 w-2/5">
+                      흑
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="max-h-7">
+                  {notation.map((move, index) => (
+                    <tr
+                      key={index}
+                      className={
+                        index % 2 === 1 ? "bg-neutral-900" : "bg-neutral-700"
+                      }
+                    >
+                      <td className="py-2 px-4">{move.moveNumber}.</td>
+                      <td className="py-2 px-4">{move.whiteMove}</td>
+                      <td className="py-2 px-4">{move.blackMove}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
         <div className="flex gap-2">
           <div
             className={`size-11 rounded flex justify-center items-center ${
@@ -116,19 +185,21 @@ export default function PlayComputer() {
         </div>
       )}
       {isStarted ? (
-        <div className="flex gap-4">
-          <button
-            onClick={handleSurrender}
-            className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500"
-          >
-            <FlagIcon className="size-5" />
-          </button>
-          <button className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500">
-            <ChevronLeftIcon className="size-5" />
-          </button>
-          <button className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500">
-            <ChevronRightIcon className="size-5" />
-          </button>
+        <div className="border-t-[1px] border-neutral-700 w-full flex justify-center">
+          <div className="flex gap-4 mt-4">
+            <button
+              onClick={handleSurrender}
+              className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500"
+            >
+              <FlagIcon className="size-5" />
+            </button>
+            <button className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500">
+              <ChevronLeftIcon className="size-5" />
+            </button>
+            <button className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500">
+              <ChevronRightIcon className="size-5" />
+            </button>
+          </div>
         </div>
       ) : (
         <button

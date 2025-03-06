@@ -4,6 +4,9 @@ export default class Timer {
   overallTime: number = 0;
   maxTime: number = 0;
 
+  gameStartTime: number | null = null;
+  gameEndTime: number | null = null;
+
   constructor(starting: number) {
     this.overallTime = starting;
     this.maxTime = starting;
@@ -19,12 +22,20 @@ export default class Timer {
     if (this.isRunning) return;
     this.isRunning = true;
     this.startTime = Date.now();
+
+    if (!this.gameStartTime) {
+      this.gameStartTime = this.startTime;
+    }
   }
 
   stop(): void {
     if (!this.isRunning) return;
     this.isRunning = false;
     this.overallTime -= this.getElapsedTimeSinceLastStart();
+  }
+
+  endGame(): void {
+    this.gameEndTime = Date.now();
   }
 
   setTime(newTime: number | string): void {
@@ -38,6 +49,8 @@ export default class Timer {
       return;
     }
     this.startTime = 0;
+    this.gameStartTime = 0;
+    this.gameEndTime = 0;
   }
 
   getTime(): number {
@@ -49,6 +62,11 @@ export default class Timer {
       return this.overallTime - this.getElapsedTimeSinceLastStart();
     }
     return this.overallTime;
+  }
+
+  getTotalGameTime(): number {
+    if (!this.gameStartTime || !this.gameEndTime) return 0;
+    return this.gameEndTime - this.gameStartTime;
   }
 }
 

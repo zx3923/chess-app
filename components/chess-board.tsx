@@ -8,6 +8,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 import "./chess-board.css";
 import { msToSec } from "@/lib/timer";
+import { soundPlayer } from "@/lib/sound";
 import Game, { GameMode } from "@/lib/game";
 import GameResultModal from "./GameResultModal";
 import { useMenu } from "@/lib/context/MenuContext";
@@ -68,22 +69,26 @@ function ChessGame() {
     }
   }, [room, gameMode, path, setGame]);
 
-  // useEffect(() => {
-  //   if (game.getIsGameOver()) {
-  //     // setOver("Game Over");
-  //     setOver(true);
-  //   }
-  // }, [fen, game]);
-
   useEffect(() => {
     const handleGameOver = () => {
       setIsGameOver(true);
     };
+    const handleMove = (move: any) => {
+      soundPlayer.playMoveSound(move);
+      setFen(game.getCurrentBoard());
+    };
+    const handleGameStart = () => {
+      setFen(game.getCurrentBoard());
+    };
 
-    game.onGameOver(handleGameOver);
+    game.on("gameOver", handleGameOver); // 이벤트 리스너 등록
+    game.on("computerMove", handleMove);
+    game.on("gameStart", handleGameStart);
 
     return () => {
-      game.offGameOver(handleGameOver);
+      game.off("gameOver", handleGameOver); // 클린업
+      game.off("computerMove", handleMove);
+      game.off("gameStart", handleGameStart);
     };
   }, [game]);
 
@@ -93,13 +98,11 @@ function ChessGame() {
     const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
     if (game.getGameMode() === "playerVsComputer") {
       if (game.makeMove(moveData)) {
-        console.log(moveData);
         setFen(game.getCurrentBoard());
         setCanMoveSquares({});
         game.setCurrentPieceSquare("");
         (async () => {
           const computerMove = await game.makeComputerMove();
-          console.log(computerMove);
           setFen(game.getCurrentBoard());
           // setCurrentPice(null);
         })();
@@ -130,34 +133,34 @@ function ChessGame() {
   }, [game]);
 
   // 타이머 갱신
-  useEffect(() => {
-    if (!game) return;
-    const intervalTime = game.getGameMode() === "playerVsComputer" ? 2000 : 200;
-    const interval = setInterval(() => {
-      if (game.getGameMode() === "playerVsComputer") {
-        setFen(game.getCurrentBoard());
-      } else {
-        if (game) {
-          const timeoutPlayer = game.checkTimeout();
-          if (timeoutPlayer) {
-            // setOver(
-            //   `Time's up! ${
-            //     timeoutPlayer === "white" ? "Black" : "White"
-            //   } wins!`
-            // );
+  // useEffect(() => {
+  //   if (!game) return;
+  //   const intervalTime = game.getGameMode() === "playerVsComputer" ? 2000 : 200;
+  //   const interval = setInterval(() => {
+  //     if (game.getGameMode() === "playerVsComputer") {
+  //       setFen(game.getCurrentBoard());
+  //     } else {
+  //       if (game) {
+  //         const timeoutPlayer = game.checkTimeout();
+  //         if (timeoutPlayer) {
+  //           // setOver(
+  //           //   `Time's up! ${
+  //           //     timeoutPlayer === "white" ? "Black" : "White"
+  //           //   } wins!`
+  //           // );
 
-            setOver(true);
-            game.handleGameOver();
-            clearInterval(interval);
-          } else {
-            setTimers(game.getTimers());
-          }
-        }
-      }
-    }, intervalTime);
+  //           setOver(true);
+  //           game.handleGameOver();
+  //           clearInterval(interval);
+  //         } else {
+  //           setTimers(game.getTimers());
+  //         }
+  //       }
+  //     }
+  //   }, intervalTime);
 
-    return () => clearInterval(interval);
-  }, [game]);
+  //   return () => clearInterval(interval);
+  // }, [game]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handlePieceClick(piece: any, square: any) {

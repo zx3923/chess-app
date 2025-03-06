@@ -1,4 +1,4 @@
-import Timer, { msToSec, secToMs, timeString } from "./timer";
+import Timer, { timeString } from "./timer";
 import { Chess } from "chess.js";
 import { Square } from "chess.js";
 import { soundPlayer } from "./sound";
@@ -6,7 +6,6 @@ import EventEmitter from "events";
 
 export type Player = "white" | "black";
 export type GameMode = "playerVsPlayer" | "playerVsComputer" | null;
-type Callback = () => void;
 
 interface Move {
   from: string;
@@ -54,6 +53,7 @@ class Game extends EventEmitter {
       this.isGameStarted = true;
       this.isGameOver = false;
       this.gameDuration.start();
+      this.emit("gameStart");
       if (this.getGameMode() !== "playerVsComputer") {
         this.timers[this.currentPlayer].start();
       } else if (this.getGameMode() === "playerVsComputer") {
@@ -93,8 +93,7 @@ class Game extends EventEmitter {
         const result = this.chess.move(move);
         if (result) {
           soundPlayer.playMoveSound(result);
-          console.log(this.chess.moveNumber());
-          console.log(this.chess.history());
+          this.emit("move", result);
           this.switchPlayer();
           return true;
         } else {
@@ -148,6 +147,7 @@ class Game extends EventEmitter {
     const move = this.chess.move({ from: data.from, to: data.to });
     if (move) {
       this.emit("computerMove", move);
+      this.emit("move", move);
       this.switchPlayer();
     }
     if (this.chess.isGameOver()) {
