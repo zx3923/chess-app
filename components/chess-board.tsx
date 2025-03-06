@@ -8,11 +8,13 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 import "./chess-board.css";
 import { msToSec } from "@/lib/timer";
-import { soundPlayer } from "@/lib/sound";
+// import { useSoundPlayer } from "@/lib/sound";
 import Game, { GameMode } from "@/lib/game";
 import GameResultModal from "./GameResultModal";
 import { useMenu } from "@/lib/context/MenuContext";
 import { useChess } from "@/lib/context/ChessContext ";
+import { Move } from "chess.js";
+import { soundPlayer } from "@/lib/sound";
 
 function ChessGame() {
   const [gameMode, setGameMode] = useState<GameMode>(null);
@@ -71,25 +73,37 @@ function ChessGame() {
   }, [room, gameMode, path, setGame]);
 
   useEffect(() => {
-    const handleGameOver = () => {
-      setIsGameOver(true);
-    };
-    const handleMove = (move: any) => {
-      soundPlayer.playMoveSound(move);
+    const handleGameStart = () => {
+      soundPlayer.start();
       setFen(game.getCurrentBoard());
     };
-    const handleGameStart = () => {
+
+    const handleGameOver = (isCheckmate: boolean) => {
+      if (!isCheckmate) {
+        soundPlayer.gameover();
+      }
+      setIsGameOver(true);
+    };
+
+    const handleMove = (move: Move) => {
+      soundPlayer.playMoveSound(move);
+    };
+
+    const handleComputerMove = (move: Move) => {
+      soundPlayer.playMoveSound(move);
       setFen(game.getCurrentBoard());
     };
 
     game.on("gameOver", handleGameOver); // 이벤트 리스너 등록
-    game.on("computerMove", handleMove);
+    game.on("computerMove", handleComputerMove);
     game.on("gameStart", handleGameStart);
+    game.on("move", handleMove);
 
     return () => {
       game.off("gameOver", handleGameOver); // 클린업
       game.off("computerMove", handleMove);
       game.off("gameStart", handleGameStart);
+      game.off("move", handleMove);
     };
   }, [game]);
 

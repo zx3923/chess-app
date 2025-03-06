@@ -1,7 +1,7 @@
 import Timer, { timeString } from "./timer";
 import { Chess } from "chess.js";
 import { Square } from "chess.js";
-import { soundPlayer } from "./sound";
+// import { soundPlayer } from "./sound";
 import EventEmitter from "events";
 
 export type Player = "white" | "black";
@@ -49,7 +49,7 @@ class Game extends EventEmitter {
 
   public play(): void {
     if (!this.isGameStarted) {
-      soundPlayer.start();
+      // soundPlayer.start();
       this.isGameStarted = true;
       this.isGameOver = false;
       this.gameDuration.start();
@@ -92,7 +92,7 @@ class Game extends EventEmitter {
       try {
         const result = this.chess.move(move);
         if (result) {
-          soundPlayer.playMoveSound(result);
+          // soundPlayer.playMoveSound(result);
           this.emit("move", result);
           this.switchPlayer();
           return true;
@@ -164,7 +164,7 @@ class Game extends EventEmitter {
     this.stop(); // Stop the game when it's over
     if (this.isSurrender) {
       this.winner = this.currentPlayer === "white" ? "black" : "white";
-      soundPlayer.gameover();
+      // soundPlayer.gameover();
     } else {
       if (this.chess.isCheckmate()) {
         console.log(
@@ -173,16 +173,16 @@ class Game extends EventEmitter {
           }`
         );
         this.winner = this.currentPlayer === "white" ? "black" : "white";
-        soundPlayer.checkmate();
+        // soundPlayer.checkmate();
       } else if (this.chess.isDraw()) {
         this.winner = "draw";
         console.log("Draw");
-        soundPlayer.stalemate();
+        // soundPlayer.stalemate();
       } else {
         console.log("Game over");
       }
     }
-    this.emit("gameOver");
+    this.emit("gameOver", this.chess.isCheckmate());
     // this.triggerGameOver();
   }
 
