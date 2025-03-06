@@ -24,6 +24,7 @@ function ChessGame() {
   const room = searchParams.get("room");
   const [canMoveSquares, setCanMoveSquares] = useState({});
   // const [currentPiece, setCurrentPice] = useState(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [timers, setTimers] = useState({ white: 300000, black: 300000 });
   const { isMenuOpen } = useMenu();
   const [isGameOver, setIsGameOver] = useState(false);
@@ -102,6 +103,7 @@ function ChessGame() {
         setCanMoveSquares({});
         game.setCurrentPieceSquare("");
         (async () => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const computerMove = await game.makeComputerMove();
           setFen(game.getCurrentBoard());
           // setCurrentPice(null);
