@@ -10,6 +10,7 @@ import {
 
 import Game, { Player } from "@/lib/game";
 import { useChess } from "@/lib/context/ChessContext ";
+import { Move } from "chess.js";
 
 export default function PlayComputer() {
   const { game, setGame } = useChess();
@@ -17,10 +18,13 @@ export default function PlayComputer() {
   const [isStarted, setIsStarted] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [selectedMove, setSelectedMove] = useState<number>(-1);
 
   const [notation, setNotation] = useState<
     { moveNumber: number; whiteMove: string; blackMove: string }[]
   >([]);
+
+  const [history, setHistory] = useState<Move[]>([]);
 
   // 스크롤 액션
   useEffect(() => {
@@ -34,7 +38,7 @@ export default function PlayComputer() {
       setIsGameOver(true);
     };
 
-    const handleMove = (move: any) => {
+    const handleMove = (move: any, history: Move[]) => {
       setNotation((prev) => {
         if (move.color === "w") {
           const movedata = {
@@ -49,6 +53,8 @@ export default function PlayComputer() {
           return updated;
         }
       });
+      setHistory(history);
+      setSelectedMove((prev) => prev + 1);
     };
 
     game.on("gameOver", handleGameOver);
@@ -90,6 +96,35 @@ export default function PlayComputer() {
     game.surrender();
   };
 
+  const handlePrevMove = () => {
+    if (selectedMove === null || selectedMove === 0) return;
+    const prevMove = selectedMove - 1;
+    setSelectedMove(prevMove);
+    handleMoveClick(
+      Math.floor(prevMove / 2),
+      prevMove % 2 === 1 ? "black" : "white"
+    );
+  };
+
+  const handleNextMove = () => {
+    if (selectedMove === null || selectedMove >= notation.length * 2 - 1)
+      return;
+    const nextMove = selectedMove + 1;
+    setSelectedMove(nextMove);
+    handleMoveClick(
+      Math.floor(nextMove / 2),
+      nextMove % 2 === 1 ? "black" : "white"
+    );
+  };
+
+  const handleMoveClick = (moveNumber: number, color: "white" | "black") => {
+    const moveIndex = moveNumber * 2 + (color === "black" ? 1 : 0);
+    setSelectedMove(moveIndex);
+    game.setCurrentBoard(
+      history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after
+    );
+  };
+
   return (
     <div className="bg-neutral-900 h-[700px] w-[300px] text-white max-[768px]:w-full rounded flex flex-col justify-center items-center gap-4 mt-24 max-[768px]:mt-0">
       {isStarted ? (
@@ -120,8 +155,30 @@ export default function PlayComputer() {
                       }
                     >
                       <td className="py-2 px-4">{move.moveNumber}.</td>
-                      <td className="py-2 px-4">{move.whiteMove}</td>
-                      <td className="py-2 px-4">{move.blackMove}</td>
+                      <td className="py-2 px-4">
+                        <span
+                          className={`hover:cursor-pointer ${
+                            selectedMove === index * 2
+                              ? "bg-neutral-500 p-1 rounded"
+                              : ""
+                          }`}
+                          onClick={() => handleMoveClick(index, "white")}
+                        >
+                          {move.whiteMove}
+                        </span>
+                      </td>
+                      <td className="py-2 px-4">
+                        <span
+                          className={`hover:cursor-pointer ${
+                            selectedMove === index * 2 + 1
+                              ? "bg-neutral-500 p-1 rounded"
+                              : ""
+                          }`}
+                          onClick={() => handleMoveClick(index, "black")}
+                        >
+                          {move.blackMove}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -193,10 +250,16 @@ export default function PlayComputer() {
             >
               <FlagIcon className="size-5" />
             </button>
-            <button className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500">
+            <button
+              onClick={handlePrevMove}
+              className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500"
+            >
               <ChevronLeftIcon className="size-5" />
             </button>
-            <button className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500">
+            <button
+              onClick={handleNextMove}
+              className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500"
+            >
               <ChevronRightIcon className="size-5" />
             </button>
           </div>
@@ -210,12 +273,67 @@ export default function PlayComputer() {
         </button>
       )}
       {isGameOver ? (
-        <button
-          className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
-          onClick={handleRestartBtn}
-        >
-          재대결
-        </button>
+        <>
+          <div className="flex gap-2">
+            <div
+              className={`size-11 rounded flex justify-center items-center ${
+                selectColor === 0 ? "border-2 border-purple-500" : null
+              }`}
+            >
+              <button
+                className="size-8 bg-white rounded"
+                onClick={() => handleColorChange(0)}
+              >
+                <Image
+                  src="/king_white.png"
+                  alt="king_white"
+                  width={100}
+                  height={100}
+                />
+              </button>
+            </div>
+            <div
+              className={`size-11 rounded flex justify-center items-center ${
+                selectColor === 2 ? "border-2 border-purple-500" : null
+              }`}
+            >
+              <button
+                className="size-8 bg-white rounded"
+                onClick={() => handleColorChange(2)}
+              >
+                <Image
+                  src="/chess_board.png"
+                  alt="chess_board"
+                  width={100}
+                  height={100}
+                />
+              </button>
+            </div>
+            <div
+              className={`size-11 rounded flex justify-center items-center ${
+                selectColor === 1 ? "border-2 border-purple-500" : null
+              }`}
+            >
+              <button
+                className="size-8 bg-white rounded"
+                onClick={() => handleColorChange(1)}
+              >
+                <Image
+                  src="/king_black.png"
+                  alt="king_black"
+                  width={100}
+                  height={100}
+                />
+              </button>
+            </div>
+          </div>
+          <button
+            className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
+            onClick={handleRestartBtn}
+          >
+            재대결
+          </button>
+        </>
       ) : null}
     </div>
   );

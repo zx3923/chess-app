@@ -31,7 +31,7 @@ function ChessGame() {
   const { isMenuOpen } = useMenu();
   const [isGameOver, setIsGameOver] = useState(false);
   const { playSound, playMoveSound } = useSoundPlayer();
-
+  const [duration, setDuration] = useState(300);
   // 초기 방 정보
   useEffect(() => {
     if (room) {
@@ -107,22 +107,33 @@ function ChessGame() {
       setFen(game.getCurrentBoard());
     };
 
+    const handleReload = (fen: any) => {
+      // console.log(game.getCurrentBoard());
+      setDuration(0);
+      setFen(fen);
+    };
+
     game.on("gameOver", handleGameOver); // 이벤트 리스너 등록
     game.on("computerMove", handleComputerMove);
     game.on("gameStart", handleGameStart);
     game.on("move", handleMove);
+    game.on("reload", handleReload);
 
     return () => {
       game.off("gameOver", handleGameOver); // 클린업
       game.off("computerMove", handleMove);
       game.off("gameStart", handleGameStart);
       game.off("move", handleMove);
+      game.off("reload", handleReload);
     };
   }, [game]);
 
   // 체스말움직임
   function onDrop(sourceSquare: any, targetSquare: any) {
     if (game.getCurrentPlayer() !== game.getUserColor()) return false;
+    if (duration === 0) {
+      setDuration(300);
+    }
     const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
     if (game.getGameMode() === "playerVsComputer") {
       if (game.makeMove(moveData)) {
@@ -240,7 +251,7 @@ function ChessGame() {
           </div>
         )}
       </div>
-      <div className="w-96 sm:w-[450px] md:w-[620px]">
+      <div className="w-80 sm:w-[450px] md:w-[620px]">
         <Chessboard
           position={fen}
           onPieceDrop={onDrop}
@@ -250,6 +261,7 @@ function ChessGame() {
           onPieceClick={handlePieceClick}
           customSquareStyles={canMoveSquares}
           onPieceDragEnd={onPieceDragEnd}
+          animationDuration={duration}
         />
       </div>
 

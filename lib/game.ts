@@ -93,7 +93,7 @@ class Game extends EventEmitter {
         const result = this.chess.move(move);
         if (result) {
           // soundPlayer.playMoveSound(result);
-          this.emit("move", result);
+          this.emit("move", result, this.chess.history({ verbose: true }));
           this.switchPlayer();
           return true;
         } else {
@@ -147,7 +147,7 @@ class Game extends EventEmitter {
     const move = this.chess.move({ from: data.from, to: data.to });
     if (move) {
       this.emit("computerMove", move);
-      this.emit("move", move);
+      this.emit("move", move, this.chess.history({ verbose: true }));
       this.switchPlayer();
     }
     if (this.chess.isGameOver()) {
@@ -244,6 +244,10 @@ class Game extends EventEmitter {
   // 보드상황
   public getCurrentBoard(): string {
     return this.chess.fen();
+  }
+
+  public setCurrentBoard(fen: string) {
+    this.emit("reload", fen);
   }
 
   // 현재 플레이어
