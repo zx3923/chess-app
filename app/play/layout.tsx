@@ -1,7 +1,7 @@
 "use client";
 
 import { ChessGameBoard } from "@/components/chess-board";
-import { ChessProvider } from "@/lib/context/ChessContext ";
+import { ChessProvider } from "@/lib/context/ChessContext";
 
 export default function PlayLayout({ children }: any) {
   return (

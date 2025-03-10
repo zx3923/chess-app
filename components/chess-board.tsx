@@ -1,5 +1,6 @@
 "use client";
 
+import { Move } from "chess.js";
 import { socket } from "@/lib/socket";
 import { Chessboard } from "react-chessboard";
 import { useState, useEffect, Suspense } from "react";
@@ -8,13 +9,12 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 import "./chess-board.css";
 import { msToSec } from "@/lib/timer";
-// import { useSoundPlayer } from "@/lib/sound";
-import Game, { GameMode } from "@/lib/game";
-import GameResultModal from "./GameResultModal";
-import { useMenu } from "@/lib/context/MenuContext";
-import { useChess } from "@/lib/context/ChessContext ";
-import { Move } from "chess.js";
 import useSoundPlayer from "@/lib/sound";
+import GameResultModal from "./GameResultModal";
+import Game, { Arrow, GameMode } from "@/lib/game";
+import { useUser } from "@/lib/context/UserContext";
+import { useMenu } from "@/lib/context/MenuContext";
+import { useChess } from "@/lib/context/ChessContext";
 
 function ChessGame() {
   const [gameMode, setGameMode] = useState<GameMode>(null);
@@ -32,6 +32,15 @@ function ChessGame() {
   const [isGameOver, setIsGameOver] = useState(false);
   const { playSound, playMoveSound } = useSoundPlayer();
   const [duration, setDuration] = useState(300);
+  const { user } = useUser();
+  const [showWinBar, setShowWinBar] = useState(false);
+  const [showBestMoves, setShowBestMoves] = useState(false);
+  const [winChance, setWinChance] = useState(50);
+  const [bestMove, setBestMove] = useState<Arrow[]>([]);
+
+  const whiteAdvantage = Math.min(Math.max(winChance, 0), 100); // 0~100 제한
+  const blackAdvantage = 100 - whiteAdvantage;
+
   // 초기 방 정보
   useEffect(() => {
     if (room) {
@@ -78,6 +87,12 @@ function ChessGame() {
       // soundPlayer.start();
       playSound("start");
       setFen(game.getCurrentBoard());
+      if (showWinBar) {
+        game.setWinChance();
+      }
+      if (showBestMoves) {
+        setBestMove(game.getBestMove());
+      }
     };
 
     const handleGameOver = (isCheckmate: boolean) => {
@@ -128,6 +143,50 @@ function ChessGame() {
     };
   }, [game]);
 
+  useEffect(() => {
+    const handleShowWinBar = () => {
+      setShowWinBar(game.getShowWinBar());
+    };
+    game.on("showWinBar", handleShowWinBar);
+
+    return () => {
+      game.off("showWinBar", handleShowWinBar);
+    };
+  }, [showWinBar, game]);
+
+  useEffect(() => {
+    const handleShowBestMoves = async (state: any) => {
+      console.log(state);
+      setShowBestMoves(state);
+      if (state) {
+        if (game.getUserColor() === "black") {
+          return;
+        }
+        await game.setBestMove();
+        setBestMove(game.getBestMove());
+      } else {
+        setBestMove([]);
+      }
+    };
+    game.on("showBestMoves", handleShowBestMoves);
+
+    return () => {
+      game.off("showBestMoves", handleShowBestMoves);
+    };
+  }, [showBestMoves, bestMove, game]);
+
+  useEffect(() => {
+    const handleBestMove = () => {
+      setBestMove(game.getBestMove());
+    };
+
+    game.on("bestMove", handleBestMove);
+
+    return () => {
+      game.off("bestMove", handleBestMove);
+    };
+  });
+
   // 체스말움직임
   function onDrop(sourceSquare: any, targetSquare: any) {
     if (game.getCurrentPlayer() !== game.getUserColor()) return false;
@@ -137,12 +196,20 @@ function ChessGame() {
     const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
     if (game.getGameMode() === "playerVsComputer") {
       if (game.makeMove(moveData)) {
+        if (showWinBar) {
+          game.setWinChance();
+          setWinChance(game.getWinChance());
+        }
         setFen(game.getCurrentBoard());
         setCanMoveSquares({});
         game.setCurrentPieceSquare("");
+        setBestMove([]);
         (async () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const computerMove = await game.makeComputerMove();
+          if (showWinBar) {
+            setWinChance(game.getWinChance());
+          }
           setFen(game.getCurrentBoard());
           // setCurrentPice(null);
         })();
@@ -262,11 +329,24 @@ function ChessGame() {
           customSquareStyles={canMoveSquares}
           onPieceDragEnd={onPieceDragEnd}
           animationDuration={duration}
+          customArrows={bestMove}
         />
+        {showWinBar ? (
+          <div className="w-full h-6 bg-gray-800 rounded-lg overflow-hidden flex border border-gray-600 mt-4">
+            <div
+              className="bg-black transition-all duration-1000"
+              style={{ width: `${blackAdvantage}%` }}
+            />
+            <div
+              className="bg-white transition-all duration-1000"
+              style={{ width: `${whiteAdvantage}%` }}
+            />
+          </div>
+        ) : null}
       </div>
 
       <div className="text-white flex justify-between items-center w-full mt-4">
-        {game.getUserColor()}
+        {user.username}
         {gameMode === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-white p-2 px-4 rounded text-black">
             <ClockIcon className="size-6" />

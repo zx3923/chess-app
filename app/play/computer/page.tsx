@@ -9,8 +9,9 @@ import {
 } from "@heroicons/react/24/solid";
 
 import Game, { Player } from "@/lib/game";
-import { useChess } from "@/lib/context/ChessContext ";
+import { useChess } from "@/lib/context/ChessContext";
 import { Move } from "chess.js";
+import ToggleSwitch from "@/components/toggle-switch";
 
 export default function PlayComputer() {
   const { game, setGame } = useChess();
@@ -19,6 +20,8 @@ export default function PlayComputer() {
   const [isGameOver, setIsGameOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedMove, setSelectedMove] = useState<number>(-1);
+  const [showWinBar, setShowWinBar] = useState(false);
+  const [showBestMoves, setShowBestMoves] = useState(false);
 
   const [notation, setNotation] = useState<
     { moveNumber: number; whiteMove: string; blackMove: string }[]
@@ -97,7 +100,8 @@ export default function PlayComputer() {
   };
 
   const handlePrevMove = () => {
-    if (selectedMove === null || selectedMove === 0) return;
+    if (selectedMove === -1 || selectedMove === 0) return;
+    console.log(selectedMove);
     const prevMove = selectedMove - 1;
     setSelectedMove(prevMove);
     handleMoveClick(
@@ -107,8 +111,8 @@ export default function PlayComputer() {
   };
 
   const handleNextMove = () => {
-    if (selectedMove === null || selectedMove >= notation.length * 2 - 1)
-      return;
+    if (selectedMove === -1 || selectedMove >= notation.length * 2 - 1) return;
+    console.log(selectedMove);
     const nextMove = selectedMove + 1;
     setSelectedMove(nextMove);
     handleMoveClick(
@@ -265,12 +269,49 @@ export default function PlayComputer() {
           </div>
         </div>
       ) : (
-        <button
-          className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
-          onClick={hnandleStartBtn}
-        >
-          플레이
-        </button>
+        <>
+          <button
+            className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
+            onClick={hnandleStartBtn}
+          >
+            플레이
+          </button>
+          <div className="w-full max-w-md mx-auto p-6 bg-neutral-900 rounded-lg shadow text-white">
+            <h2 className="text-xl font-bold mb-6 text-center">설정</h2>
+
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <ToggleSwitch
+                  label="평가 막대"
+                  isOn={showWinBar}
+                  onToggle={setShowWinBar}
+                />
+                <span className="text-sm text-gray-400">
+                  {showWinBar ? "켜짐" : "꺼짐"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <ToggleSwitch
+                  label="수 보이기"
+                  isOn={showBestMoves}
+                  onToggle={setShowBestMoves}
+                />
+                <span className="text-sm text-gray-400">
+                  {showBestMoves ? "켜짐" : "꺼짐"}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-8 p-4 bg-neutral-800 rounded text-sm">
+              <p className="font-medium mb-2">현재 설정:</p>
+              <ul className="list-disc list-inside space-y-1 text-gray-300">
+                <li>평가 막대: {showWinBar ? "활성화됨" : "비활성화됨"}</li>
+                <li>수 보이기: {showBestMoves ? "활성화됨" : "비활성화됨"}</li>
+              </ul>
+            </div>
+          </div>
+        </>
       )}
       {isGameOver ? (
         <>

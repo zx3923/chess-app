@@ -6,6 +6,7 @@ import EventEmitter from "events";
 
 export type Player = "white" | "black";
 export type GameMode = "playerVsPlayer" | "playerVsComputer" | null;
+export type Arrow = [Square, Square, (string | undefined)?];
 
 interface Move {
   from: string;
@@ -27,6 +28,10 @@ class Game extends EventEmitter {
   private isSurrender: boolean;
   private moveHistory: string[];
   private gameDuration: Timer;
+  private showWinBar: boolean;
+  private showBestMoves: boolean;
+  private winChance: number;
+  private bestMove: Arrow[];
 
   constructor(gameMode: GameMode, userColor: Player, startingTime: number) {
     super();
@@ -45,6 +50,10 @@ class Game extends EventEmitter {
     this.isSurrender = false;
     this.moveHistory = [];
     this.gameDuration = new Timer(0);
+    this.showWinBar = false;
+    this.showBestMoves = false;
+    this.winChance = 50;
+    this.bestMove = [];
   }
 
   public play(): void {
@@ -95,6 +104,9 @@ class Game extends EventEmitter {
           // soundPlayer.playMoveSound(result);
           this.emit("move", result, this.chess.history({ verbose: true }));
           this.switchPlayer();
+          if (this.chess.isGameOver()) {
+            this.handleGameOver();
+          }
           return true;
         } else {
           return false;
@@ -138,17 +150,25 @@ class Game extends EventEmitter {
   public async makeComputerMove(): Promise<any> {
     const sleep = (ms: number) =>
       new Promise((resolve) => setTimeout(resolve, ms));
-    await sleep(500);
+    await sleep(2000);
     const data = await postChessApi({
       fen: this.chess.fen(),
-      depth: 0,
+      depth: 1,
       maxThinkingTime: 1,
+      searchmoves: "",
     });
     const move = this.chess.move({ from: data.from, to: data.to });
     if (move) {
       this.emit("computerMove", move);
       this.emit("move", move, this.chess.history({ verbose: true }));
       this.switchPlayer();
+    }
+    if (this.showWinBar) {
+      this.setWinChance(data.winChance);
+    }
+    if (this.showBestMoves) {
+      await this.setBestMove();
+      this.emit("bestMove");
     }
     if (this.chess.isGameOver()) {
       this.handleGameOver();
@@ -306,14 +326,14 @@ class Game extends EventEmitter {
     return this.isSurrender;
   }
 
-  public getGameDuration() {
+  public getGameDuration(): string {
     const totalGameTime = this.gameDuration.getTotalGameTime();
     const totalGameTimeString = timeString(totalGameTime / 1000);
     return totalGameTimeString;
   }
 
   // 현재 클릭 한 말
-  public setCurrentPieceSquare(piece: string) {
+  public setCurrentPieceSquare(piece: string): void {
     this.currentPiece = piece;
   }
 
@@ -323,6 +343,61 @@ class Game extends EventEmitter {
 
   public getWinner(): string {
     return this.winner;
+  }
+
+  public getShowBestMoves(): boolean {
+    return this.showBestMoves;
+  }
+
+  public setShowBestMoves(state: boolean): void {
+    console.log(state);
+    this.emit("showBestMoves", state);
+    this.showBestMoves = state;
+  }
+
+  public getShowWinBar(): boolean {
+    // this.emit("reload");
+    return this.showWinBar;
+  }
+
+  public setShowWinBar(state: boolean): void {
+    this.showWinBar = state;
+    this.emit("showWinBar");
+  }
+
+  public getWinChance(): number {
+    return this.winChance;
+  }
+
+  public async setWinChance(winChance?: string): Promise<void> {
+    if (winChance) {
+      this.winChance = Number(winChance);
+    } else {
+      const data = await postChessApi({
+        fen: this.chess.fen(),
+        depth: 12,
+        maxThinkingTime: 1,
+        variants: 5,
+      });
+      console.log(data);
+      this.winChance = Number(data.winChance);
+    }
+    // const winChance = Number(data.winChance);
+    // this.winChance = winChance;
+  }
+
+  public async setBestMove() {
+    const data = await postChessApi({
+      fen: this.chess.fen(),
+      depth: 12,
+      variants: 5,
+    });
+    this.bestMove = [[data.from, data.to, "#9fcf38"]];
+    console.log(this.bestMove);
+  }
+
+  public getBestMove(): Arrow[] {
+    return this.bestMove;
   }
 }
 

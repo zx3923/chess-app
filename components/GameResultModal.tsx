@@ -1,4 +1,4 @@
-import { useChess } from "@/lib/context/ChessContext ";
+import { useChess } from "@/lib/context/ChessContext";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { ClockIcon, TrophyIcon } from "@heroicons/react/24/outline";
 
