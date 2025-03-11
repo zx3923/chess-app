@@ -87,10 +87,11 @@ function ChessGame() {
       // soundPlayer.start();
       playSound("start");
       setFen(game.getCurrentBoard());
-      if (showWinBar) {
-        game.setWinChance();
-      }
+      // if (showWinBar) {
+      //   game.setWinChanceAndBestMove();
+      // }
       if (showBestMoves) {
+        if (game.getUserColor() === "black") return;
         setBestMove(game.getBestMove());
       }
     };
@@ -156,13 +157,13 @@ function ChessGame() {
 
   useEffect(() => {
     const handleShowBestMoves = async (state: any) => {
-      console.log(state);
       setShowBestMoves(state);
       if (state) {
         if (game.getUserColor() === "black") {
           return;
         }
-        await game.setBestMove();
+        // await game.setBestMove();
+        await game.setWinChanceAndBestMove();
         setBestMove(game.getBestMove());
       } else {
         setBestMove([]);
@@ -177,6 +178,7 @@ function ChessGame() {
 
   useEffect(() => {
     const handleBestMove = () => {
+      console.log(game.getBestMove());
       setBestMove(game.getBestMove());
     };
 
@@ -196,10 +198,10 @@ function ChessGame() {
     const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
     if (game.getGameMode() === "playerVsComputer") {
       if (game.makeMove(moveData)) {
-        if (showWinBar) {
-          game.setWinChance();
-          setWinChance(game.getWinChance());
-        }
+        // if (showWinBar) {
+        //   game.setWinChanceAndBestMove();
+        //   setWinChance(game.getWinChance());
+        // }
         setFen(game.getCurrentBoard());
         setCanMoveSquares({});
         game.setCurrentPieceSquare("");

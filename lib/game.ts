@@ -158,16 +158,18 @@ class Game extends EventEmitter {
       searchmoves: "",
     });
     const move = this.chess.move({ from: data.from, to: data.to });
+    console.log(data);
     if (move) {
       this.emit("computerMove", move);
       this.emit("move", move, this.chess.history({ verbose: true }));
       this.switchPlayer();
     }
     if (this.showWinBar) {
-      this.setWinChance(data.winChance);
+      await this.setWinChanceAndBestMove();
     }
     if (this.showBestMoves) {
-      await this.setBestMove();
+      // this.bestMove = [[data.from, data.to, "#9fcf38"]];
+      // await this.setWinChanceAndBestMove();
       this.emit("bestMove");
     }
     if (this.chess.isGameOver()) {
@@ -350,7 +352,6 @@ class Game extends EventEmitter {
   }
 
   public setShowBestMoves(state: boolean): void {
-    console.log(state);
     this.emit("showBestMoves", state);
     this.showBestMoves = state;
   }
@@ -369,32 +370,33 @@ class Game extends EventEmitter {
     return this.winChance;
   }
 
-  public async setWinChance(winChance?: string): Promise<void> {
+  public async setWinChanceAndBestMove(winChance?: string): Promise<void> {
     if (winChance) {
       this.winChance = Number(winChance);
     } else {
       const data = await postChessApi({
         fen: this.chess.fen(),
-        depth: 12,
-        maxThinkingTime: 1,
+        depth: 18,
+        maxThinkingTime: 100,
         variants: 5,
       });
       console.log(data);
       this.winChance = Number(data.winChance);
+      this.bestMove = [[data.from, data.to, "#9fcf38"]];
     }
     // const winChance = Number(data.winChance);
     // this.winChance = winChance;
   }
 
-  public async setBestMove() {
-    const data = await postChessApi({
-      fen: this.chess.fen(),
-      depth: 12,
-      variants: 5,
-    });
-    this.bestMove = [[data.from, data.to, "#9fcf38"]];
-    console.log(this.bestMove);
-  }
+  // public async setBestMove() {
+  //   const data = await postChessApi({
+  //     fen: this.chess.fen(),
+  //     depth: 12,
+  //     variants: 5,
+  //   });
+  //   this.bestMove = [[data.from, data.to, "#9fcf38"]];
+  //   console.log(this.bestMove);
+  // }
 
   public getBestMove(): Arrow[] {
     return this.bestMove;
