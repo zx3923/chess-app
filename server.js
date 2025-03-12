@@ -42,6 +42,7 @@ app.prepare().then(() => {
       // 적합한 매칭이 있다면
       if (match) {
         const { player1, player2 } = match;
+        console.log(player1);
         const player1Color = Math.random() < 0.5 ? "white" : "black";
         const player2Color = player1Color === "white" ? "black" : "white";
         const roomId = uuidv4();
@@ -58,12 +59,12 @@ app.prepare().then(() => {
           players: [
             {
               id: player1.socketId,
-              username: player1.user_name,
+              username: player1.username,
               color: player1Color,
             },
             {
               id: player2.socketId,
-              username: player2.user_name,
+              username: player2.username,
               color: player2Color,
             },
           ],
@@ -213,6 +214,8 @@ function tryToMatch(waitingQueue, gameMode) {
       // 현재 게임 모드에 따른 레이팅 참조
       const player1Rating = getRatingByMode(player1, gameMode);
       const player2Rating = getRatingByMode(player2, gameMode);
+      console.log(player1Rating);
+      console.log(player2Rating);
 
       // 레이팅 차이가 100 이내인지 확인
       if (Math.abs(player1Rating - player2Rating) <= 100) {

@@ -16,6 +16,9 @@ export async function GET(request: NextRequest) {
         id: true,
         user_name: true,
         email: true,
+        blitzRating: true,
+        bulletRating: true,
+        rapidRating: true,
       },
     });
 

@@ -29,6 +29,10 @@ export default function PlayComputer() {
 
   const [history, setHistory] = useState<Move[]>([]);
 
+  useEffect(() => {
+    game.setGameMode("playerVsComputer");
+  }, []);
+
   // 스크롤 액션
   useEffect(() => {
     if (scrollRef.current) {
@@ -81,7 +85,7 @@ export default function PlayComputer() {
     }
     game.setUserColor(color);
     const newGame = new Game("playerVsComputer", color, 0);
-    setGame(newGame);
+    setGame("playerVsComputer", color);
   };
 
   const hnandleStartBtn = () => {
@@ -135,7 +139,7 @@ export default function PlayComputer() {
         <div className="w-full max-w-md mx-auto p-4 bg-neutral-900 rounded-lg shadow text-white">
           <h2 className="text-xl font-bold mb-4 text-center">체스 기보</h2>
           <div className="rounded overflow-hidden">
-            <div ref={scrollRef} className="max-h-[300px] overflow-y-auto">
+            <div ref={scrollRef} className="max-h-[210px] overflow-y-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-neutral-800">
@@ -374,6 +378,41 @@ export default function PlayComputer() {
           >
             재대결
           </button>
+          <div className="w-full max-w-md mx-auto p-6 bg-neutral-900 rounded-lg shadow text-white">
+            <h2 className="text-xl font-bold mb-6 text-center">설정</h2>
+
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <ToggleSwitch
+                  label="평가 막대"
+                  isOn={showWinBar}
+                  onToggle={setShowWinBar}
+                />
+                <span className="text-sm text-gray-400">
+                  {showWinBar ? "켜짐" : "꺼짐"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <ToggleSwitch
+                  label="수 보이기"
+                  isOn={showBestMoves}
+                  onToggle={setShowBestMoves}
+                />
+                <span className="text-sm text-gray-400">
+                  {showBestMoves ? "켜짐" : "꺼짐"}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-8 p-4 bg-neutral-800 rounded text-sm">
+              <p className="font-medium mb-2">현재 설정:</p>
+              <ul className="list-disc list-inside space-y-1 text-gray-300">
+                <li>평가 막대: {showWinBar ? "활성화됨" : "비활성화됨"}</li>
+                <li>수 보이기: {showBestMoves ? "활성화됨" : "비활성화됨"}</li>
+              </ul>
+            </div>
+          </div>
         </>
       ) : null}
     </div>

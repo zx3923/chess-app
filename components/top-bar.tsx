@@ -17,23 +17,26 @@ export default function TopBar() {
   const { user, setUser, logout } = useUser();
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    async function getUser() {
-      const response = await fetch("/api/getUser", {
-        cache: "no-store",
-      });
-      if (response.ok) {
-        const userData = await response.json();
-        setUser({
-          isLoggedIn: true,
-          id: userData.id,
-          username: userData.user_name,
-          email: userData.email,
-        });
-      }
-    }
-    getUser();
-  }, []);
+  // useEffect(() => {
+  //   async function getUser() {
+  //     const response = await fetch("/api/getUser", {
+  //       cache: "no-store",
+  //     });
+  //     if (response.ok) {
+  //       const userData = await response.json();
+  //       setUser({
+  //         isLoggedIn: true,
+  //         id: userData.id,
+  //         username: userData.user_name,
+  //         email: userData.email,
+  //         blitzRating: userData.blitzRating,
+  //         bulletRating: userData.bulletRating,
+  //         rapidRating: userData.rapidRating,
+  //       });
+  //     }
+  //   }
+  //   getUser();
+  // }, []);
 
   const hanldeLogout = async () => {
     const response = await fetch("/api/logout", {

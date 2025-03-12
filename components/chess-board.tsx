@@ -5,11 +5,11 @@ import { socket } from "@/lib/socket";
 import { Chessboard } from "react-chessboard";
 import { useState, useEffect, Suspense } from "react";
 import { ClockIcon } from "@heroicons/react/24/outline";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import "./chess-board.css";
-import { msToSec } from "@/lib/timer";
-import useSoundPlayer from "@/lib/sound";
+import { msToSec, timeString } from "@/lib/timer";
+// import useSoundPlayer from "@/lib/sound";
 import GameResultModal from "./GameResultModal";
 import Game, { Arrow, GameMode } from "@/lib/game";
 import { useUser } from "@/lib/context/UserContext";
@@ -21,71 +21,140 @@ function ChessGame() {
   const { game, setGame } = useChess();
   const [fen, setFen] = useState(game.getCurrentBoard());
   const [over, setOver] = useState(false);
-  const searchParams = useSearchParams();
+  // const searchParams = useSearchParams();
   const path = usePathname();
-  const room = searchParams.get("room");
+  // const room = searchParams.get("room");
   const [canMoveSquares, setCanMoveSquares] = useState({});
   // const [currentPiece, setCurrentPice] = useState(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [timers, setTimers] = useState({ white: 300000, black: 300000 });
+  const [timers, setTimers] = useState({ white: 180000, black: 180000 });
   const { isMenuOpen } = useMenu();
   const [isGameOver, setIsGameOver] = useState(false);
-  const { playSound, playMoveSound } = useSoundPlayer();
+  // const { playSound, playMoveSound } = useSoundPlayer();
   const [duration, setDuration] = useState(300);
   const { user } = useUser();
   const [showWinBar, setShowWinBar] = useState(false);
   const [showBestMoves, setShowBestMoves] = useState(false);
   const [winChance, setWinChance] = useState(50);
   const [bestMove, setBestMove] = useState<Arrow[]>([]);
+  const [room, setRoom] = useState<{ roomId: string }>();
+  const [opponent, setOpponent] = useState();
 
   const whiteAdvantage = Math.min(Math.max(winChance, 0), 100); // 0~100 제한
   const blackAdvantage = 100 - whiteAdvantage;
 
   // 초기 방 정보
-  useEffect(() => {
-    if (room) {
-      socket.emit("getRoomInfo", room, (roomInfo: any) => {
-        if (roomInfo) {
-          const fetchUserData = async () => {
-            const response = await fetch("/api/getUser");
-            if (response.ok) {
-              const userData = await response.json();
-              console.log(roomInfo);
-              console.log(userData);
-              const player = roomInfo.players.find(
-                (p: any) => p.username === userData.user_name
-              );
-              if (player) {
-                const color = player.color;
-                const newGame = new Game(gameMode, color, 10000);
-                setGame(newGame);
-              }
-            } else {
-              console.error("User not authenticated");
-            }
-          };
-          fetchUserData();
-        } else {
-          // setOver("Failed to fetch room");
-          setOver(true);
-          console.log(over);
-        }
-      });
-    } else {
-      const pathSegments = path.split("/").filter((segment) => segment);
-      const lastSegment = pathSegments[pathSegments.length - 1];
-      if (lastSegment === "computer") {
-        setGameMode("playerVsComputer");
-        const newGame = new Game("playerVsComputer", "white", 1000);
-        setGame(newGame);
-      }
-    }
-  }, [room, gameMode, path, setGame]);
+  // useEffect(() => {
+  //   console.log(lastSegment);
+  //   if (lastSegment != "computer") {
+  //     socket.emit("getRoomInfo", lastSegment, (roomInfo: any) => {
+  //       if (roomInfo) {
+  //         setRoom(roomInfo);
+  //         console.log(roomInfo);
+  //         console.log(user);
+  //         if (user.isLoggedIn) {
+  //           const player = roomInfo.players.find(
+  //             (p: any) => p.username === user.username
+  //           );
+  //           setOpponent(() => {
+  //             const opponent = roomInfo.players.find(
+  //               (player: any) => player.username !== user.username
+  //             );
+  //             return opponent ? opponent.username : null;
+  //           });
+  //           if (player) {
+  //             const color = player.color;
+  //             const newGame = new Game(gameMode, color, roomInfo.timers.white);
+  //             setGame(gameMode, color);
+  //           } else {
+  //             console.error("User not authenticated");
+  //           }
+  //         }
+
+  //         // const fetchUserData = async () => {
+  //         //   const response = await fetch("/api/getUser");
+  //         //   if (response.ok) {
+  //         //     const userData = await response.json();
+  //         //     console.log(roomInfo);
+  //         //     console.log(userData);
+  //         //     const player = roomInfo.players.find(
+  //         //       (p: any) => p.username === userData.user_name
+  //         //     );
+  //         //     if (player) {
+  //         //       const color = player.color;
+  //         //       const newGame = new Game(
+  //         //         gameMode,
+  //         //         color,
+  //         //         roomInfo.timers.white
+  //         //       );
+  //         //       setGame(newGame);
+  //         //     }
+  //         //   } else {
+  //         //     console.error("User not authenticated");
+  //         //   }
+  //         // };
+  //         // fetchUserData();
+  //       } else {
+  //         // setOver("Failed to fetch room");
+  //         setOver(true);
+  //         console.log(over);
+  //       }
+  //     });
+  //   } else {
+  //     if (lastSegment === "computer") {
+  //       setGameMode("playerVsComputer");
+  //       const newGame = new Game("playerVsComputer", "white", 1000);
+  //       setGame("playerVsComputer", "white");
+  //     }
+  //   }
+  // }, []);
 
   useEffect(() => {
     const handleGameStart = () => {
+      // const pathSegments = path.split("/").filter((segment) => segment);
+      // const lastSegment = pathSegments[pathSegments.length - 1];
+      // console.log(pathSegments);
+      // console.log(lastSegment);
+      const roomId = game.getRoomId();
+      console.log(game.getGameMode());
+      if (game.getGameMode() === "playerVsPlayer") {
+        socket.emit("getRoomInfo", roomId, (roomInfo: any) => {
+          if (roomInfo) {
+            setRoom(roomInfo);
+            console.log(roomId);
+            console.log(roomInfo);
+            if (user.isLoggedIn) {
+              const player = roomInfo.players.find(
+                (p: any) => p.username === user.username
+              );
+              setOpponent(() => {
+                const opponent = roomInfo.players.find(
+                  (player: any) => player.username !== user.username
+                );
+                return opponent ? opponent.username : null;
+              });
+              if (player) {
+                const color = player.color;
+                const newGame = new Game(
+                  gameMode,
+                  color,
+                  roomInfo.timers.white
+                );
+                setGame(gameMode, color);
+              } else {
+                console.error("User not authenticated");
+              }
+            }
+          }
+        });
+      } else if (roomId === "computer") {
+        setGameMode("playerVsComputer");
+        setGame("playerVsComputer", "white");
+      }
       // soundPlayer.start();
-      playSound("start");
+      // playSound("start");
+      const startAudio = new Audio("/audios/start.mp3");
+      startAudio.play();
       setFen(game.getCurrentBoard());
       // if (showWinBar) {
       //   game.setWinChanceAndBestMove();
@@ -99,7 +168,9 @@ function ChessGame() {
     const handleGameOver = (isCheckmate: boolean) => {
       if (!isCheckmate) {
         // soundPlayer.gameover();
-        playSound("gameover");
+        const gameoverAudio = new Audio("/audios/gameover.mp3");
+        gameoverAudio.play();
+        // playSound("gameover");
       }
       setIsGameOver(true);
     };
@@ -107,26 +178,41 @@ function ChessGame() {
     const handleMove = (move: Move) => {
       // soundPlayer.playMoveSound(move);
       if (move.captured) {
-        playMoveSound(move.san, true);
+        console.log(1);
+        const captureAudio = new Audio("/audios/capture.mp3");
+        captureAudio.play();
+        // playMoveSound(move.san, true);
       } else {
-        playMoveSound(move.san);
+        console.log(2);
+        const moveAudio = new Audio("/audios/move.mp3");
+        moveAudio.play();
+        // playMoveSound(move.san);
       }
     };
 
     const handleComputerMove = (move: Move) => {
       // soundPlayer.playMoveSound(move);
-      if (move.captured) {
-        playMoveSound(move.san, true);
-      } else {
-        playMoveSound(move.san);
-      }
+      // if (move.captured) {
+      //   console.log(3);
+      //   const captureAudio = new Audio("/audios/capture.mp3");
+      //   captureAudio.play();
+      //   playMoveSound(move.san, true);
+      // } else {
+      //   console.log(4);
+      //   const moveAudio = new Audio("/audios/move.mp3");
+      //   moveAudio.play();
+      //   playMoveSound(move.san);
+      // }
       setFen(game.getCurrentBoard());
     };
 
     const handleReload = (fen: any) => {
-      // console.log(game.getCurrentBoard());
       setDuration(0);
       setFen(fen);
+    };
+
+    const handleGameType = () => {
+      setTimers(game.getTimers());
     };
 
     game.on("gameOver", handleGameOver); // 이벤트 리스너 등록
@@ -134,6 +220,7 @@ function ChessGame() {
     game.on("gameStart", handleGameStart);
     game.on("move", handleMove);
     game.on("reload", handleReload);
+    game.on("gameType", handleGameType);
 
     return () => {
       game.off("gameOver", handleGameOver); // 클린업
@@ -141,6 +228,7 @@ function ChessGame() {
       game.off("gameStart", handleGameStart);
       game.off("move", handleMove);
       game.off("reload", handleReload);
+      game.off("gameType", handleGameType);
     };
   }, [game]);
 
@@ -220,15 +308,21 @@ function ChessGame() {
         game.setCurrentPieceSquare("");
       }
       return true;
-    }
-    if (game.makeMove(moveData)) {
-      setFen(game.getCurrentBoard());
-      if (room) {
-        socket.emit("move", { move: moveData, room });
+    } else {
+      if (game.makeMove(moveData)) {
+        setFen(game.getCurrentBoard());
+        setCanMoveSquares({});
+        game.setCurrentPieceSquare("");
+        const roomId = game.getRoomId();
+        if (roomId) {
+          console.log("emittest");
+          socket.emit("move", { move: moveData, room: roomId });
+        }
+        // setCurrentPice(null);
+        return true;
       }
-      // setCurrentPice(null);
-      return true;
     }
+
     // setCurrentPice(null);
     return false;
   }
@@ -308,14 +402,15 @@ function ChessGame() {
       }`}
     >
       <div className="text-white flex justify-between items-center w-full mb-4">
-        {game.getUserColor() === "white" ? "black" : "white"}
+        {/* {game.getUserColor() === "white" ? "black" : "white"} */}
+        {/* {lastSegment !== "computer" && opponent ? opponent : ""} */}
         {gameMode === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-neutral-700 p-2 px-4 rounded">
             <ClockIcon className="size-6" />
             <p>
               {game.getUserColor() === "black"
-                ? msToSec(timers.white)
-                : msToSec(timers.black)}
+                ? timeString(Number(msToSec(timers.white)))
+                : timeString(Number(msToSec(timers.black)))}
             </p>
           </div>
         )}
@@ -354,8 +449,8 @@ function ChessGame() {
             <ClockIcon className="size-6" />
             <p>
               {game.getUserColor() === "white"
-                ? msToSec(timers.white)
-                : msToSec(timers.black)}
+                ? timeString(Number(msToSec(timers.white)))
+                : timeString(Number(msToSec(timers.black)))}
             </p>
           </div>
         )}

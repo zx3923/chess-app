@@ -32,6 +32,7 @@ class Game extends EventEmitter {
   private showBestMoves: boolean;
   private winChance: number;
   private bestMove: Arrow[];
+  private roomId: string;
 
   constructor(gameMode: GameMode, userColor: Player, startingTime: number) {
     super();
@@ -54,6 +55,7 @@ class Game extends EventEmitter {
     this.showBestMoves = false;
     this.winChance = 50;
     this.bestMove = [];
+    this.roomId = "";
   }
 
   public play(): void {
@@ -118,6 +120,7 @@ class Game extends EventEmitter {
       try {
         const result = this.chess.move(move);
         if (result) {
+          this.emit("move", result, this.chess.history({ verbose: true }));
           this.timers[this.currentPlayer].stop(); // 현재 플레이어의 타이머 정지
           this.switchPlayer();
           this.timers[this.currentPlayer].start(); // 다음 플레이어의 타이머 시작
@@ -282,6 +285,7 @@ class Game extends EventEmitter {
       white: timer,
       black: timer,
     };
+    this.emit("gameType");
   }
 
   public getTimers(): { white: number; black: number } {
@@ -289,6 +293,14 @@ class Game extends EventEmitter {
       white: this.timers.white.getTime(),
       black: this.timers.black.getTime(),
     };
+  }
+
+  public getRoomId(): string {
+    return this.roomId;
+  }
+
+  public setRoomId(roomId: string): void {
+    this.roomId = roomId;
   }
 
   public getIsGameStarted(): boolean {
@@ -303,7 +315,7 @@ class Game extends EventEmitter {
     this.gameMode = gameMode;
   }
 
-  public getGameMode(): string | null {
+  public getGameMode(): GameMode {
     return this.gameMode;
   }
 
@@ -311,7 +323,7 @@ class Game extends EventEmitter {
     this.userColor = userColor;
   }
 
-  public getUserColor(): string {
+  public getUserColor(): Player {
     return this.userColor;
   }
 
