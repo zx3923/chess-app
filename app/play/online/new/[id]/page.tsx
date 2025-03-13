@@ -7,11 +7,12 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/solid";
+
 import { useChess } from "@/lib/context/ChessContext";
 
 export default function NewPage() {
-  const { game, setGame } = useChess();
-  const [isStarted, setIsStarted] = useState(true);
+  const { game } = useChess();
+  // const [isStarted, setIsStarted] = useState(true);
   const [isGameOver, setIsGameOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedMove, setSelectedMove] = useState<number>(-1);
@@ -33,8 +34,41 @@ export default function NewPage() {
   }, [notation]);
 
   useEffect(() => {
-    game.setGameMode("playerVsPlayer");
-  }, []);
+    const handleGameOver = () => {
+      setIsGameOver(true);
+    };
+
+    const handleMove = (move: any, history: Move[]) => {
+      setNotation((prev) => {
+        if (move.color === "w") {
+          const movedata = {
+            moveNumber: prev.length + 1,
+            whiteMove: move.san,
+            blackMove: "",
+          };
+          return [...prev, movedata];
+        } else {
+          const updated = [...prev];
+          updated[updated.length - 1].blackMove = move.san;
+          return updated;
+        }
+      });
+      setHistory(history);
+      setSelectedMove((prev) => prev + 1);
+    };
+
+    game.on("gameOver", handleGameOver);
+    game.on("move", handleMove);
+
+    return () => {
+      game.off("gameOver", handleGameOver);
+      game.off("move", handleMove);
+    };
+  }, [game]);
+
+  // useEffect(() => {
+  //   game.setGameMode("playerVsPlayer");
+  // }, []);
 
   // const hnandleStartBtn = () => {
   //   game.play();

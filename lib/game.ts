@@ -143,7 +143,7 @@ class Game extends EventEmitter {
         }
         return false;
       } catch (e) {
-        console.error(e);
+        // console.error(e);
         return false;
       }
     }
@@ -161,7 +161,6 @@ class Game extends EventEmitter {
       searchmoves: "",
     });
     const move = this.chess.move({ from: data.from, to: data.to });
-    console.log(data);
     if (move) {
       this.emit("computerMove", move);
       this.emit("move", move, this.chess.history({ verbose: true }));
@@ -184,6 +183,7 @@ class Game extends EventEmitter {
   // 게임종료 핸들러
   public handleGameOver(): void {
     this.isGameOver = true;
+    this.isGameStarted = false;
     this.gameDuration.endGame();
     this.gameDuration.stop();
     this.stop(); // Stop the game when it's over
@@ -235,12 +235,21 @@ class Game extends EventEmitter {
 
   public restartGame(): void {
     if (!this.isGameStarted) {
-      this.isSurrender = false;
-      this.currentPlayer = "white";
-      this.chess.reset();
-      this.gameDuration.reset();
+      // this.isSurrender = false;
+      // this.currentPlayer = "white";
+      // this.chess.reset();
+      // this.gameDuration.reset();
+      this.gameInit();
     }
     this.play();
+  }
+
+  public gameInit(): void {
+    this.isGameStarted = false;
+    this.isSurrender = false;
+    this.currentPlayer = "white";
+    this.chess.reset();
+    this.gameDuration.reset();
   }
 
   // // 게임종료 리스너
@@ -280,10 +289,10 @@ class Game extends EventEmitter {
     return this.currentPlayer;
   }
 
-  public setTimers(timer: Timer) {
+  public setTimers(timer: number) {
     this.timers = {
-      white: timer,
-      black: timer,
+      white: new Timer(timer),
+      black: new Timer(timer),
     };
     this.emit("gameType");
   }

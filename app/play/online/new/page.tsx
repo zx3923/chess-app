@@ -1,20 +1,20 @@
 "use client";
 
-import { useChess } from "@/lib/context/ChessContext";
-import Timer from "@/lib/timer";
-import { useEffect, useState } from "react";
 import { socket } from "@/lib/socket";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
 import { Loader2 } from "lucide-react";
 import { useUser } from "@/lib/context/UserContext";
-
-import { useRouter } from "next/navigation";
+import { useChess } from "@/lib/context/ChessContext";
 
 export default function PlayNew() {
-  const { game, setGame } = useChess();
+  const { game } = useChess();
   const { user } = useUser();
-  const [selectedType, setSelectedType] = useState("blitz");
-  const [isMatching, setIsMatching] = useState(false);
+
   const router = useRouter();
+  const [isMatching, setIsMatching] = useState(false);
+  const [selectedType, setSelectedType] = useState("blitz");
 
   const hnandleStartBtn = () => {
     setIsMatching(true);
@@ -34,7 +34,8 @@ export default function PlayNew() {
         : gameType === "bullet"
         ? 60000
         : 0;
-    game.setTimers(new Timer(timer));
+    game.setTimers(timer);
+    console.log(game.getTimers());
   };
 
   const cancelMatching = () => {
@@ -45,9 +46,13 @@ export default function PlayNew() {
   useEffect(() => {
     if (socket) {
       socket.on("matchFound", (data) => {
-        console.log("data : ", data);
         handleRedirect(data.roomId);
+        // setGame("playerVsPlayer");
+        console.log("match", data.color);
+        game.gameInit();
+        game.setGameMode("playerVsPlayer");
         game.setRoomId(data.roomId);
+        game.setUserColor(data.color);
         game.play();
       });
     }

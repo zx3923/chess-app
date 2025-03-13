@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Move } from "chess.js";
 import { useEffect, useRef, useState } from "react";
 import {
   FlagIcon,
@@ -10,15 +11,15 @@ import {
 
 import Game, { Player } from "@/lib/game";
 import { useChess } from "@/lib/context/ChessContext";
-import { Move } from "chess.js";
 import ToggleSwitch from "@/components/toggle-switch";
 
 export default function PlayComputer() {
   const { game, setGame } = useChess();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const [selectColor, setSelectColor] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedMove, setSelectedMove] = useState<number>(-1);
   const [showWinBar, setShowWinBar] = useState(false);
   const [showBestMoves, setShowBestMoves] = useState(false);
@@ -28,10 +29,6 @@ export default function PlayComputer() {
   >([]);
 
   const [history, setHistory] = useState<Move[]>([]);
-
-  useEffect(() => {
-    game.setGameMode("playerVsComputer");
-  }, []);
 
   // 스크롤 액션
   useEffect(() => {

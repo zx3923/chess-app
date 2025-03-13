@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import {
   createContext,
   ReactNode,
@@ -57,19 +58,20 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   if (isLoading) {
-    return <div>Loading...</div>; // 데이터를 기다리는 동안 로딩 화면 표시
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-neutral-800">
+        <div className="flex flex-col items-center">
+          <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+          <span className="text-xl font-semibold mb-6">로딩 중...</span>
+        </div>
+      </div>
+    ); // 데이터를 기다리는 동안 로딩 화면 표시
   }
 
-  // 로그인 및 로그아웃 상태 변경 함수
-  // const login = (username: string, id: number, email?: string) =>
-  //   setUser({ isLoggedIn: true, username, id, email });
   const login = (userData: Omit<User, "isLoggedIn">) => {
     setUser((prev) => ({ ...prev, ...userData, isLoggedIn: true }));
   };
 
-  // const logout = () => {
-  //   setUser({ isLoggedIn: false });
-  // };
   const logout = () => {
     setUser({
       isLoggedIn: false,

@@ -5,124 +5,49 @@ import { socket } from "@/lib/socket";
 import { Chessboard } from "react-chessboard";
 import { useState, useEffect, Suspense } from "react";
 import { ClockIcon } from "@heroicons/react/24/outline";
-import { usePathname } from "next/navigation";
 
 import "./chess-board.css";
-import { msToSec, timeString } from "@/lib/timer";
-// import useSoundPlayer from "@/lib/sound";
+import { playSound } from "@/lib/sound";
+import { Arrow, GameMode } from "@/lib/game";
 import GameResultModal from "./GameResultModal";
-import Game, { Arrow, GameMode } from "@/lib/game";
+import { msToSec, timeString } from "@/lib/timer";
 import { useUser } from "@/lib/context/UserContext";
 import { useMenu } from "@/lib/context/MenuContext";
 import { useChess } from "@/lib/context/ChessContext";
 
 function ChessGame() {
-  const [gameMode, setGameMode] = useState<GameMode>(null);
-  const { game, setGame } = useChess();
-  const [fen, setFen] = useState(game.getCurrentBoard());
-  const [over, setOver] = useState(false);
-  // const searchParams = useSearchParams();
-  const path = usePathname();
-  // const room = searchParams.get("room");
-  const [canMoveSquares, setCanMoveSquares] = useState({});
-  // const [currentPiece, setCurrentPice] = useState(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [timers, setTimers] = useState({ white: 180000, black: 180000 });
-  const { isMenuOpen } = useMenu();
-  const [isGameOver, setIsGameOver] = useState(false);
-  // const { playSound, playMoveSound } = useSoundPlayer();
-  const [duration, setDuration] = useState(300);
   const { user } = useUser();
-  const [showWinBar, setShowWinBar] = useState(false);
-  const [showBestMoves, setShowBestMoves] = useState(false);
-  const [winChance, setWinChance] = useState(50);
-  const [bestMove, setBestMove] = useState<Arrow[]>([]);
-  const [room, setRoom] = useState<{ roomId: string }>();
+  const { isMenuOpen } = useMenu();
+  const { game, setGame } = useChess();
+
+  const [over, setOver] = useState(false);
   const [opponent, setOpponent] = useState();
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [room, setRoom] = useState<{ roomId: string }>();
+  const [fen, setFen] = useState(game.getCurrentBoard());
+  const [gameMode, setGameMode] = useState<GameMode>(null);
+  const [timers, setTimers] = useState({ white: 180000, black: 180000 });
+
+  const [duration, setDuration] = useState(300);
+  const [winChance, setWinChance] = useState(50);
+  const [showWinBar, setShowWinBar] = useState(false);
+  const [bestMove, setBestMove] = useState<Arrow[]>([]);
+  const [canMoveSquares, setCanMoveSquares] = useState({});
+  const [showBestMoves, setShowBestMoves] = useState(false);
 
   const whiteAdvantage = Math.min(Math.max(winChance, 0), 100); // 0~100 제한
   const blackAdvantage = 100 - whiteAdvantage;
 
   // 초기 방 정보
-  // useEffect(() => {
-  //   console.log(lastSegment);
-  //   if (lastSegment != "computer") {
-  //     socket.emit("getRoomInfo", lastSegment, (roomInfo: any) => {
-  //       if (roomInfo) {
-  //         setRoom(roomInfo);
-  //         console.log(roomInfo);
-  //         console.log(user);
-  //         if (user.isLoggedIn) {
-  //           const player = roomInfo.players.find(
-  //             (p: any) => p.username === user.username
-  //           );
-  //           setOpponent(() => {
-  //             const opponent = roomInfo.players.find(
-  //               (player: any) => player.username !== user.username
-  //             );
-  //             return opponent ? opponent.username : null;
-  //           });
-  //           if (player) {
-  //             const color = player.color;
-  //             const newGame = new Game(gameMode, color, roomInfo.timers.white);
-  //             setGame(gameMode, color);
-  //           } else {
-  //             console.error("User not authenticated");
-  //           }
-  //         }
-
-  //         // const fetchUserData = async () => {
-  //         //   const response = await fetch("/api/getUser");
-  //         //   if (response.ok) {
-  //         //     const userData = await response.json();
-  //         //     console.log(roomInfo);
-  //         //     console.log(userData);
-  //         //     const player = roomInfo.players.find(
-  //         //       (p: any) => p.username === userData.user_name
-  //         //     );
-  //         //     if (player) {
-  //         //       const color = player.color;
-  //         //       const newGame = new Game(
-  //         //         gameMode,
-  //         //         color,
-  //         //         roomInfo.timers.white
-  //         //       );
-  //         //       setGame(newGame);
-  //         //     }
-  //         //   } else {
-  //         //     console.error("User not authenticated");
-  //         //   }
-  //         // };
-  //         // fetchUserData();
-  //       } else {
-  //         // setOver("Failed to fetch room");
-  //         setOver(true);
-  //         console.log(over);
-  //       }
-  //     });
-  //   } else {
-  //     if (lastSegment === "computer") {
-  //       setGameMode("playerVsComputer");
-  //       const newGame = new Game("playerVsComputer", "white", 1000);
-  //       setGame("playerVsComputer", "white");
-  //     }
-  //   }
-  // }, []);
-
   useEffect(() => {
     const handleGameStart = () => {
-      // const pathSegments = path.split("/").filter((segment) => segment);
-      // const lastSegment = pathSegments[pathSegments.length - 1];
-      // console.log(pathSegments);
-      // console.log(lastSegment);
+      setFen(game.getCurrentBoard());
       const roomId = game.getRoomId();
-      console.log(game.getGameMode());
       if (game.getGameMode() === "playerVsPlayer") {
+        startTimer();
         socket.emit("getRoomInfo", roomId, (roomInfo: any) => {
           if (roomInfo) {
             setRoom(roomInfo);
-            console.log(roomId);
-            console.log(roomInfo);
             if (user.isLoggedIn) {
               const player = roomInfo.players.find(
                 (p: any) => p.username === user.username
@@ -134,13 +59,7 @@ function ChessGame() {
                 return opponent ? opponent.username : null;
               });
               if (player) {
-                const color = player.color;
-                const newGame = new Game(
-                  gameMode,
-                  color,
-                  roomInfo.timers.white
-                );
-                setGame(gameMode, color);
+                setGame(gameMode);
               } else {
                 console.error("User not authenticated");
               }
@@ -151,14 +70,8 @@ function ChessGame() {
         setGameMode("playerVsComputer");
         setGame("playerVsComputer", "white");
       }
-      // soundPlayer.start();
-      // playSound("start");
-      const startAudio = new Audio("/audios/start.mp3");
-      startAudio.play();
+      playSound("start");
       setFen(game.getCurrentBoard());
-      // if (showWinBar) {
-      //   game.setWinChanceAndBestMove();
-      // }
       if (showBestMoves) {
         if (game.getUserColor() === "black") return;
         setBestMove(game.getBestMove());
@@ -167,26 +80,16 @@ function ChessGame() {
 
     const handleGameOver = (isCheckmate: boolean) => {
       if (!isCheckmate) {
-        // soundPlayer.gameover();
-        const gameoverAudio = new Audio("/audios/gameover.mp3");
-        gameoverAudio.play();
-        // playSound("gameover");
+        playSound("gameover");
       }
       setIsGameOver(true);
     };
 
     const handleMove = (move: Move) => {
-      // soundPlayer.playMoveSound(move);
       if (move.captured) {
-        console.log(1);
-        const captureAudio = new Audio("/audios/capture.mp3");
-        captureAudio.play();
-        // playMoveSound(move.san, true);
+        playSound(move.san, true);
       } else {
-        console.log(2);
-        const moveAudio = new Audio("/audios/move.mp3");
-        moveAudio.play();
-        // playMoveSound(move.san);
+        playSound(move.san);
       }
     };
 
@@ -315,7 +218,6 @@ function ChessGame() {
         game.setCurrentPieceSquare("");
         const roomId = game.getRoomId();
         if (roomId) {
-          console.log("emittest");
           socket.emit("move", { move: moveData, room: roomId });
         }
         // setCurrentPice(null);
@@ -336,34 +238,25 @@ function ChessGame() {
   }, [game]);
 
   // 타이머 갱신
-  // useEffect(() => {
-  //   if (!game) return;
-  //   const intervalTime = game.getGameMode() === "playerVsComputer" ? 2000 : 200;
-  //   const interval = setInterval(() => {
-  //     if (game.getGameMode() === "playerVsComputer") {
-  //       setFen(game.getCurrentBoard());
-  //     } else {
-  //       if (game) {
-  //         const timeoutPlayer = game.checkTimeout();
-  //         if (timeoutPlayer) {
-  //           // setOver(
-  //           //   `Time's up! ${
-  //           //     timeoutPlayer === "white" ? "Black" : "White"
-  //           //   } wins!`
-  //           // );
+  const startTimer = () => {
+    if (!game) return;
+    if (!game.getIsGameStarted()) return;
 
-  //           setOver(true);
-  //           game.handleGameOver();
-  //           clearInterval(interval);
-  //         } else {
-  //           setTimers(game.getTimers());
-  //         }
-  //       }
-  //     }
-  //   }, intervalTime);
+    const interval = setInterval(() => {
+      if (game) {
+        const timeoutPlayer = game.checkTimeout();
+        if (timeoutPlayer) {
+          setOver(true);
+          game.handleGameOver();
+          clearInterval(interval);
+        } else {
+          setTimers(game.getTimers());
+        }
+      }
+    }, 200);
 
-  //   return () => clearInterval(interval);
-  // }, [game]);
+    return () => clearInterval(interval);
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handlePieceClick(piece: any, square: any) {
@@ -402,8 +295,7 @@ function ChessGame() {
       }`}
     >
       <div className="text-white flex justify-between items-center w-full mb-4">
-        {/* {game.getUserColor() === "white" ? "black" : "white"} */}
-        {/* {lastSegment !== "computer" && opponent ? opponent : ""} */}
+        {opponent ? opponent : "상대"}
         {gameMode === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-neutral-700 p-2 px-4 rounded">
             <ClockIcon className="size-6" />
