@@ -9,9 +9,9 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/solid";
 
-import Game, { Player } from "@/lib/game";
-import { useChess } from "@/lib/context/ChessContext";
+import { Player } from "@/lib/game";
 import ToggleSwitch from "@/components/toggle-switch";
+import { useChess } from "@/lib/context/ChessContext";
 
 export default function PlayComputer() {
   const { game, setGame } = useChess();
