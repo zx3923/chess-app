@@ -20,9 +20,11 @@ function ChessGame() {
   const { isMenuOpen } = useMenu();
   const { game, setGame } = useChess();
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [over, setOver] = useState(false);
   const [opponent, setOpponent] = useState();
   const [isGameOver, setIsGameOver] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [room, setRoom] = useState<{ roomId: string }>();
   const [fen, setFen] = useState(game.getCurrentBoard());
   const [gameMode, setGameMode] = useState<GameMode>(null);
@@ -93,6 +95,7 @@ function ChessGame() {
       }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleComputerMove = (move: Move) => {
       // soundPlayer.playMoveSound(move);
       // if (move.captured) {

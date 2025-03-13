@@ -142,6 +142,7 @@ class Game extends EventEmitter {
           return true;
         }
         return false;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         // console.error(e);
         return false;

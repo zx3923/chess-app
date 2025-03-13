@@ -1,42 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import React, { useEffect, useRef } from "react";
 import {
   UserCircleIcon,
   Bars4Icon,
   BarsArrowUpIcon,
 } from "@heroicons/react/24/solid";
-import { useUser } from "@/lib/context/UserContext";
+
 import { useMenu } from "@/lib/context/MenuContext";
-import Image from "next/image";
+import { useUser } from "@/lib/context/UserContext";
 
 export default function TopBar() {
-  // const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isMenuOpen, toggleMenu, closeMenu } = useMenu();
-  const { user, setUser, logout } = useUser();
+  const { user, logout } = useUser();
   const menuRef = useRef<HTMLDivElement | null>(null);
-
-  // useEffect(() => {
-  //   async function getUser() {
-  //     const response = await fetch("/api/getUser", {
-  //       cache: "no-store",
-  //     });
-  //     if (response.ok) {
-  //       const userData = await response.json();
-  //       setUser({
-  //         isLoggedIn: true,
-  //         id: userData.id,
-  //         username: userData.user_name,
-  //         email: userData.email,
-  //         blitzRating: userData.blitzRating,
-  //         bulletRating: userData.bulletRating,
-  //         rapidRating: userData.rapidRating,
-  //       });
-  //     }
-  //   }
-  //   getUser();
-  // }, []);
+  const { isMenuOpen, toggleMenu, closeMenu } = useMenu();
 
   const hanldeLogout = async () => {
     const response = await fetch("/api/logout", {

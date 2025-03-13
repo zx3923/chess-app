@@ -81,7 +81,6 @@ export default function PlayComputer() {
       color = Math.random() < 0.5 ? "white" : "black";
     }
     game.setUserColor(color);
-    const newGame = new Game("playerVsComputer", color, 0);
     setGame("playerVsComputer", color);
   };
 
