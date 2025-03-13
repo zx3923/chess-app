@@ -14,7 +14,10 @@ export default function Login() {
   if (state?.isLoggedIn) {
     setTimeout(() => {
       // 다른 컴포넌트 렌더링 중 setState 실행시 오류 잠시 기다렸다 실행
-      login(state.username!, state.id!, state.email ? state.email : undefined);
+      login({
+        ...state,
+        email: state.email ?? undefined, // null이면 undefined로 변환
+      });
     }, 0);
     redirect("/home");
   }

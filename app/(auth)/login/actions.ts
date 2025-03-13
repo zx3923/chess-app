@@ -69,6 +69,9 @@ export async function logIn(prevState: any, formData: FormData) {
         password: true,
         user_name: true,
         email: true,
+        blitzRating: true,
+        bulletRating: true,
+        rapidRating: true,
       },
     });
     const ok = await bcrypt.compare(
@@ -83,6 +86,9 @@ export async function logIn(prevState: any, formData: FormData) {
         username: user?.user_name,
         isLoggedIn: true,
         email: user?.email,
+        blitzRating: user?.blitzRating,
+        bulletRating: user?.bulletRating,
+        rapidRating: user?.rapidRating,
       };
     } else {
       return {
