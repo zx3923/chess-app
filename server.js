@@ -16,9 +16,11 @@ const waitingQueues = {
   blitz: [],
   bullet: [],
 };
+console.log("check", 1);
 
 app.prepare().then(() => {
   const httpServer = createServer(handler);
+  console.log("check", 2);
 
   const io = new Server(httpServer, {
     cors: {
