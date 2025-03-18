@@ -221,7 +221,6 @@ function ChessGame() {
         game.setCurrentPieceSquare("");
         const roomId = game.getRoomId();
         if (roomId) {
-          console.log("!!!!!!!!!!!!", game.getCurrentPlayer());
           socket.emit("move", {
             move: moveData,
             room: roomId,
@@ -258,13 +257,13 @@ function ChessGame() {
           game.handleGameOver();
           clearInterval(interval);
         } else {
-          setTimers(game.getTimers());
+          // setTimers(game.getTimers());
           socket.emit("getTimers", game.getRoomId(), ({ timers }: any) => {
             setTimers(timers);
           });
         }
       }
-    }, 1000);
+    }, 200);
 
     return () => clearInterval(interval);
   };
