@@ -254,9 +254,12 @@ function ChessGame() {
           clearInterval(interval);
         } else {
           setTimers(game.getTimers());
+          socket.emit("getTimers", game.getRoomId(), ({ timers }: any) => {
+            console.log(timers);
+          });
         }
       }
-    }, 200);
+    }, 1000);
 
     return () => clearInterval(interval);
   };
