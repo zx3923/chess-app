@@ -222,7 +222,11 @@ function ChessGame() {
         const roomId = game.getRoomId();
         if (roomId) {
           console.log("!!!!!!!!!!!!", game.getCurrentPlayer());
-          socket.emit("move", { move: moveData, room: roomId });
+          socket.emit("move", {
+            move: moveData,
+            room: roomId,
+            color: game.getCurrentPlayer(),
+          });
         }
         // setCurrentPice(null);
         return true;
