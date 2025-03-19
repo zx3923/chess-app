@@ -15,6 +15,19 @@ import { useUser } from "@/lib/context/UserContext";
 import { useMenu } from "@/lib/context/MenuContext";
 import { useChess } from "@/lib/context/ChessContext";
 
+interface Player {
+  id: string;
+  username: string;
+  color: string;
+  rating: number;
+}
+
+interface Room {
+  roomId: string;
+  players: Player[];
+  gameMode: "rapid" | "blitz" | "bullet";
+}
+
 function ChessGame() {
   const { user } = useUser();
   const { isMenuOpen } = useMenu();
@@ -22,10 +35,10 @@ function ChessGame() {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [over, setOver] = useState(false);
-  const [opponent, setOpponent] = useState();
+  const [opponent, setOpponent] = useState<Player | undefined>();
   const [isGameOver, setIsGameOver] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [room, setRoom] = useState<{ roomId: string }>();
+  const [room, setRoom] = useState<Room>();
   const [fen, setFen] = useState(game.getCurrentBoard());
   const [gameMode, setGameMode] = useState<GameMode>(null);
   const [timers, setTimers] = useState({ white: 180000, black: 180000 });
@@ -40,6 +53,26 @@ function ChessGame() {
   const whiteAdvantage = Math.min(Math.max(winChance, 0), 100); // 0~100 제한
   const blackAdvantage = 100 - whiteAdvantage;
 
+  // useEffect(() => {
+  //   socket.emit(
+  //     "requestGameState",
+  //     { username: user.username },
+  //     (roomInfo: any, player: any, opponent: any) => {
+  //       setRoom(roomInfo);
+  //       setOpponent(opponent);
+  //       setGame(
+  //         "playerVsPlayer",
+  //         player.color,
+  //         roomInfo.timers[player.color].overallTime
+  //       );
+  //       game.setRoomId(roomInfo.roomId);
+  //       game.setIsGameStarted(true);
+  //       setFen(roomInfo.fen);
+  //       startTimer();
+  //     }
+  //   );
+  // }, [user.username]);
+
   // 초기 방 정보
   useEffect(() => {
     const handleGameStart = () => {
@@ -49,16 +82,17 @@ function ChessGame() {
         startTimer();
         socket.emit("getRoomInfo", roomId, (roomInfo: any) => {
           if (roomInfo) {
+            console.log(roomInfo);
             setRoom(roomInfo);
             if (user.isLoggedIn) {
               const player = roomInfo.players.find(
                 (p: any) => p.username === user.username
               );
               setOpponent(() => {
-                const opponent = roomInfo.players.find(
+                const opponent: Player | undefined = roomInfo.players.find(
                   (player: any) => player.username !== user.username
                 );
-                return opponent ? opponent.username : null;
+                return opponent ?? undefined;
               });
               if (player) {
                 setGame(gameMode);
@@ -84,6 +118,7 @@ function ChessGame() {
       if (!isCheckmate) {
         playSound("gameover");
       }
+      socket.emit("gameover", game.getRoomId());
       setIsGameOver(true);
     };
 
@@ -225,6 +260,7 @@ function ChessGame() {
             move: moveData,
             room: roomId,
             color: game.getCurrentPlayer(),
+            fen: game.getCurrentBoard(),
           });
         }
         // setCurrentPice(null);
@@ -246,8 +282,10 @@ function ChessGame() {
 
   // 타이머 갱신
   const startTimer = () => {
+    console.log(game.getRoomId());
     if (!game) return;
     if (!game.getIsGameStarted()) return;
+    console.log(game.getRoomId());
 
     const interval = setInterval(() => {
       if (game) {
@@ -305,7 +343,14 @@ function ChessGame() {
       }`}
     >
       <div className="text-white flex justify-between items-center w-full mb-4">
-        {opponent ? opponent : "상대"}
+        {opponent ? (
+          <div className="flex text-sm gap-1">
+            <span>{opponent.username}</span>
+            <span className="text-gray-500">({opponent.rating})</span>
+          </div>
+        ) : (
+          <>상대</>
+        )}
         {gameMode === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-neutral-700 p-2 px-4 rounded">
             <ClockIcon className="size-6" />
@@ -345,7 +390,12 @@ function ChessGame() {
       </div>
 
       <div className="text-white flex justify-between items-center w-full mt-4">
-        {user.username}
+        <div className="flex text-sm gap-1">
+          <span>{user.username}</span>
+          <span className="text-gray-500">
+            {room ? <>({user[`${room!.gameMode}Rating`]})</> : null}
+          </span>
+        </div>
         {gameMode === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-white p-2 px-4 rounded text-black">
             <ClockIcon className="size-6" />

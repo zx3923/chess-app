@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import next from "next";
 import { Server } from "socket.io";
 import { v4 as uuidv4 } from "uuid";
+import Timer from "./lib/timer.js";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -16,11 +17,9 @@ const waitingQueues = {
   blitz: [],
   bullet: [],
 };
-console.log("check", 1);
 
 app.prepare().then(() => {
   const httpServer = createServer(handler);
-  console.log("check", 2);
 
   const io = new Server(httpServer, {
     cors: {
@@ -30,7 +29,7 @@ app.prepare().then(() => {
   });
 
   io.on("connection", (socket) => {
-    console.log("a user connected");
+    console.log("a user connected. id: ", socket.id);
     // 매칭 요청
     socket.on("joinQueue", ({ user, gameMode }) => {
       if (!waitingQueues[gameMode]) {
@@ -63,11 +62,13 @@ app.prepare().then(() => {
               id: player1.socketId,
               username: player1.username,
               color: player1Color,
+              rating: getRatingByMode(player1, gameMode),
             },
             {
               id: player2.socketId,
               username: player2.username,
               color: player2Color,
+              rating: getRatingByMode(player2, gameMode),
             },
           ],
           // timers: { white: initialTime, black: initialTime },
@@ -77,6 +78,8 @@ app.prepare().then(() => {
           },
           lastMoveTime: Date.now(),
           currentTurn: "white",
+          gameMode,
+          fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         });
 
         io.to(player1.socketId).emit("matchFound", {
@@ -117,6 +120,20 @@ app.prepare().then(() => {
       }
     });
 
+    // 재 요청
+    socket.on("requestGameState", ({ username }, callback) => {
+      const room = [...rooms.values()].find((r) =>
+        r.players.some((p) => p.username === username)
+      );
+      if (!room) return callback({ error: "Room not found" });
+
+      const player = room.players.find((p) => p.username === username);
+      const opponent = room.players.find((p) => p.username !== username);
+      console.log("player  :", player);
+      console.log("room       :", room);
+      callback(room, player, opponent);
+    });
+
     // 체스말 움직임
     socket.on("move", (data) => {
       console.log("data : ", data);
@@ -128,6 +145,7 @@ app.prepare().then(() => {
       room.currentTurn = color;
       console.log(room.currentTurn);
       room.timers[room.currentTurn].start();
+      room.fen = data.fen;
       // const now = Date.now();
       // console.log(now);
       // const elapsedTime = (now - room.lastMoveTime) / 1000; // 경과 시간 (초 단위)
@@ -179,6 +197,12 @@ app.prepare().then(() => {
       // }
 
       callback({ timers });
+    });
+
+    // 게임종료
+    socket.on("gameover", (roomId) => {
+      rooms.delete(roomId);
+      console.log(`${roomId} delete`);
     });
 
     socket.on("disconnect", () => {
