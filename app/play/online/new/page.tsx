@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 
 import { Loader2 } from "lucide-react";
 import { useUser } from "@/lib/context/UserContext";
-import { useChess } from "@/lib/context/ChessContext";
+// import { useChess } from "@/lib/context/ChessContext";
 
 export default function PlayNew() {
-  const { game } = useChess();
+  // const { game } = useChess();
   const { user } = useUser();
 
   const router = useRouter();
@@ -34,8 +34,8 @@ export default function PlayNew() {
         : gameType === "bullet"
         ? 60000
         : 0;
-    game.setTimers(timer);
-    console.log(game.getTimers());
+    // game.setTimers(timer);
+    // console.log(game.getTimers());
   };
 
   const cancelMatching = () => {
@@ -48,12 +48,11 @@ export default function PlayNew() {
       socket.on("matchFound", (data) => {
         handleRedirect(data.roomId);
         // setGame("playerVsPlayer");
-        console.log("match", data.color);
-        game.gameInit();
-        game.setGameMode("playerVsPlayer");
-        game.setRoomId(data.roomId);
-        game.setUserColor(data.color);
-        game.play();
+        // game.gameInit();
+        // game.setGameMode("playerVsPlayer");
+        // game.setRoomId(data.roomId);
+        // game.setUserColor(data.color);
+        // game.play();
       });
     }
     return () => {

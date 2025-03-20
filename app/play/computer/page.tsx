@@ -9,12 +9,12 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/solid";
 
-import { Player } from "@/lib/game";
+// import { Player } from "@/lib/game";
 import ToggleSwitch from "@/components/toggle-switch";
-import { useChess } from "@/lib/context/ChessContext";
+// import { useChess } from "@/lib/context/ChessContext";
 
 export default function PlayComputer() {
-  const { game, setGame } = useChess();
+  // const { game, setGame } = useChess();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [selectColor, setSelectColor] = useState(0);
@@ -37,67 +37,67 @@ export default function PlayComputer() {
     }
   }, [notation]);
 
-  useEffect(() => {
-    const handleGameOver = () => {
-      setIsGameOver(true);
-    };
+  // useEffect(() => {
+  //   const handleGameOver = () => {
+  //     setIsGameOver(true);
+  //   };
 
-    const handleMove = (move: any, history: Move[]) => {
-      setNotation((prev) => {
-        if (move.color === "w") {
-          const movedata = {
-            moveNumber: prev.length + 1,
-            whiteMove: move.san,
-            blackMove: "",
-          };
-          return [...prev, movedata];
-        } else {
-          const updated = [...prev];
-          updated[updated.length - 1].blackMove = move.san;
-          return updated;
-        }
-      });
-      setHistory(history);
-      setSelectedMove((prev) => prev + 1);
-    };
+  //   const handleMove = (move: any, history: Move[]) => {
+  //     setNotation((prev) => {
+  //       if (move.color === "w") {
+  //         const movedata = {
+  //           moveNumber: prev.length + 1,
+  //           whiteMove: move.san,
+  //           blackMove: "",
+  //         };
+  //         return [...prev, movedata];
+  //       } else {
+  //         const updated = [...prev];
+  //         updated[updated.length - 1].blackMove = move.san;
+  //         return updated;
+  //       }
+  //     });
+  //     setHistory(history);
+  //     setSelectedMove((prev) => prev + 1);
+  //   };
 
-    game.on("gameOver", handleGameOver);
-    game.on("move", handleMove);
+  //   game.on("gameOver", handleGameOver);
+  //   game.on("move", handleMove);
 
-    return () => {
-      game.off("gameOver", handleGameOver);
-      game.off("move", handleMove);
-    };
-  }, [game]);
+  //   return () => {
+  //     game.off("gameOver", handleGameOver);
+  //     game.off("move", handleMove);
+  //   };
+  // }, [game]);
 
-  const handleColorChange = (num: number) => {
-    setSelectColor(num);
-    let color: Player = "white";
-    if (num === 0) {
-      color = "white";
-    } else if (num === 1) {
-      color = "black";
-    } else if (num === 2) {
-      color = Math.random() < 0.5 ? "white" : "black";
-    }
-    game.setUserColor(color);
-    setGame("playerVsComputer", color);
-  };
+  // const handleColorChange = (num: number) => {
+  //   setSelectColor(num);
+  //   let color: Player = "white";
+  //   if (num === 0) {
+  //     color = "white";
+  //   } else if (num === 1) {
+  //     color = "black";
+  //   } else if (num === 2) {
+  //     color = Math.random() < 0.5 ? "white" : "black";
+  //   }
+  //   game.setUserColor(color);
+  //   setGame("playerVsComputer", color);
+  // };
 
-  const hnandleStartBtn = () => {
-    game.play();
-    setIsStarted(true);
-  };
+  // const hnandleStartBtn = () => {
+  //   game.play();
+  //   setIsStarted(true);
+  // };
 
-  const handleRestartBtn = () => {
-    game.restartGame();
-    setIsGameOver(false);
-    setNotation([]);
-  };
+  // const handleRestartBtn = () => {
+  //   game.restartGame();
+  //   setIsGameOver(false);
+  //   setNotation([]);
+  // };
 
-  const handleSurrender = () => {
-    game.surrender();
-  };
+  // const handleSurrender = () => {
+  //   game.surrender();
+  // };
 
   const handlePrevMove = () => {
     if (selectedMove === -1 || selectedMove === 0) return;
@@ -124,9 +124,9 @@ export default function PlayComputer() {
   const handleMoveClick = (moveNumber: number, color: "white" | "black") => {
     const moveIndex = moveNumber * 2 + (color === "black" ? 1 : 0);
     setSelectedMove(moveIndex);
-    game.setCurrentBoard(
-      history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after
-    );
+    // game.setCurrentBoard(
+    //   history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after
+    // );
   };
 
   return (
@@ -199,7 +199,7 @@ export default function PlayComputer() {
           >
             <button
               className="size-8 bg-white rounded"
-              onClick={() => handleColorChange(0)}
+              // onClick={() => handleColorChange(0)}
             >
               <Image
                 src="/king_white.png"
@@ -216,7 +216,7 @@ export default function PlayComputer() {
           >
             <button
               className="size-8 bg-white rounded"
-              onClick={() => handleColorChange(2)}
+              // onClick={() => handleColorChange(2)}
             >
               <Image
                 src="/chess_board.png"
@@ -233,7 +233,7 @@ export default function PlayComputer() {
           >
             <button
               className="size-8 bg-white rounded"
-              onClick={() => handleColorChange(1)}
+              // onClick={() => handleColorChange(1)}
             >
               <Image
                 src="/king_black.png"
@@ -249,7 +249,7 @@ export default function PlayComputer() {
         <div className="border-t-[1px] border-neutral-700 w-full flex justify-center">
           <div className="flex gap-4 mt-4">
             <button
-              onClick={handleSurrender}
+              // onClick={handleSurrender}
               className="p-3 px-5 bg-neutral-600 rounded hover:bg-neutral-500"
             >
               <FlagIcon className="size-5" />
@@ -272,7 +272,7 @@ export default function PlayComputer() {
         <>
           <button
             className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
-            onClick={hnandleStartBtn}
+            // onClick={hnandleStartBtn}
           >
             플레이
           </button>
@@ -323,7 +323,7 @@ export default function PlayComputer() {
             >
               <button
                 className="size-8 bg-white rounded"
-                onClick={() => handleColorChange(0)}
+                // onClick={() => handleColorChange(0)}
               >
                 <Image
                   src="/king_white.png"
@@ -340,7 +340,7 @@ export default function PlayComputer() {
             >
               <button
                 className="size-8 bg-white rounded"
-                onClick={() => handleColorChange(2)}
+                // onClick={() => handleColorChange(2)}
               >
                 <Image
                   src="/chess_board.png"
@@ -357,7 +357,7 @@ export default function PlayComputer() {
             >
               <button
                 className="size-8 bg-white rounded"
-                onClick={() => handleColorChange(1)}
+                // onClick={() => handleColorChange(1)}
               >
                 <Image
                   src="/king_black.png"
@@ -370,7 +370,7 @@ export default function PlayComputer() {
           </div>
           <button
             className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
-            onClick={handleRestartBtn}
+            // onClick={handleRestartBtn}
           >
             재대결
           </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Move } from "chess.js";
+import { Move, Square } from "chess.js";
 import { socket } from "@/lib/socket";
 import { Chessboard } from "react-chessboard";
 import { useState, useEffect, Suspense } from "react";
@@ -8,12 +8,12 @@ import { ClockIcon } from "@heroicons/react/24/outline";
 
 import "./chess-board.css";
 import { playSound } from "@/lib/sound";
-import { Arrow, GameMode } from "@/lib/game";
+// import { Arrow, GameMode } from "@/lib/game";
 import GameResultModal from "./GameResultModal";
 import { msToSec, timeString } from "@/lib/timer";
 import { useUser } from "@/lib/context/UserContext";
 import { useMenu } from "@/lib/context/MenuContext";
-import { useChess } from "@/lib/context/ChessContext";
+// import { useChess } from "@/lib/context/ChessContext";
 
 interface Player {
   id: string;
@@ -26,21 +26,32 @@ interface Room {
   roomId: string;
   players: Player[];
   gameMode: "rapid" | "blitz" | "bullet";
+  fen: string;
 }
+
+type Arrow = [Square, Square, (string | undefined)?];
+type GameType = "playerVsPlayer" | "playerVsComputer" | null;
 
 function ChessGame() {
   const { user } = useUser();
   const { isMenuOpen } = useMenu();
-  const { game, setGame } = useChess();
+  const [isLoading, setIsLoading] = useState(true);
+  // const { game, setGame } = useChess();
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [over, setOver] = useState(false);
+  const [winner, setWinner] = useState("");
+  const [reason, setReason] = useState("");
+  const [gameTime, setGameTime] = useState(0);
+  const [userColor, setUserColor] = useState<string>("white");
   const [opponent, setOpponent] = useState<Player | undefined>();
+  const [closeModal, setCloseModal] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [room, setRoom] = useState<Room>();
-  const [fen, setFen] = useState(game.getCurrentBoard());
-  const [gameMode, setGameMode] = useState<GameMode>(null);
+  // const [fen, setFen] = useState(game.getCurrentBoard());
+  const [fen, setFen] = useState<string>();
+  const [prevFen, setPrevFen] = useState<string>();
+  const [gameType, setGameType] = useState<GameType>(null);
   const [timers, setTimers] = useState({ white: 180000, black: 180000 });
 
   const [duration, setDuration] = useState(300);
@@ -53,254 +64,384 @@ function ChessGame() {
   const whiteAdvantage = Math.min(Math.max(winChance, 0), 100); // 0~100 제한
   const blackAdvantage = 100 - whiteAdvantage;
 
-  // useEffect(() => {
-  //   socket.emit(
-  //     "requestGameState",
-  //     { username: user.username },
-  //     (roomInfo: any, player: any, opponent: any) => {
-  //       setRoom(roomInfo);
-  //       setOpponent(opponent);
-  //       setGame(
-  //         "playerVsPlayer",
-  //         player.color,
-  //         roomInfo.timers[player.color].overallTime
-  //       );
-  //       game.setRoomId(roomInfo.roomId);
-  //       game.setIsGameStarted(true);
-  //       setFen(roomInfo.fen);
-  //       startTimer();
-  //     }
-  //   );
-  // }, [user.username]);
-
-  // 초기 방 정보
+  // 새로고침
   useEffect(() => {
-    const handleGameStart = () => {
-      setFen(game.getCurrentBoard());
-      const roomId = game.getRoomId();
-      if (game.getGameMode() === "playerVsPlayer") {
-        startTimer();
-        socket.emit("getRoomInfo", roomId, (roomInfo: any) => {
-          if (roomInfo) {
-            console.log(roomInfo);
-            setRoom(roomInfo);
-            if (user.isLoggedIn) {
-              const player = roomInfo.players.find(
-                (p: any) => p.username === user.username
-              );
-              setOpponent(() => {
-                const opponent: Player | undefined = roomInfo.players.find(
-                  (player: any) => player.username !== user.username
-                );
-                return opponent ?? undefined;
-              });
-              if (player) {
-                setGame(gameMode);
-              } else {
-                console.error("User not authenticated");
-              }
-            }
-          }
-        });
-      } else if (roomId === "computer") {
-        setGameMode("playerVsComputer");
-        setGame("playerVsComputer", "white");
-      }
-      playSound("start");
-      setFen(game.getCurrentBoard());
-      if (showBestMoves) {
-        if (game.getUserColor() === "black") return;
-        setBestMove(game.getBestMove());
-      }
-    };
-
-    const handleGameOver = (isCheckmate: boolean) => {
-      if (!isCheckmate) {
-        playSound("gameover");
-      }
-      socket.emit("gameover", game.getRoomId());
-      setIsGameOver(true);
-    };
-
-    const handleMove = (move: Move) => {
-      if (move.captured) {
-        playSound(move.san, true);
-      } else {
-        playSound(move.san);
-      }
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const handleComputerMove = (move: Move) => {
-      // soundPlayer.playMoveSound(move);
-      // if (move.captured) {
-      //   console.log(3);
-      //   const captureAudio = new Audio("/audios/capture.mp3");
-      //   captureAudio.play();
-      //   playMoveSound(move.san, true);
-      // } else {
-      //   console.log(4);
-      //   const moveAudio = new Audio("/audios/move.mp3");
-      //   moveAudio.play();
-      //   playMoveSound(move.san);
-      // }
-      setFen(game.getCurrentBoard());
-    };
-
-    const handleReload = (fen: any) => {
-      setDuration(0);
-      setFen(fen);
-    };
-
-    const handleGameType = () => {
-      setTimers(game.getTimers());
-    };
-
-    game.on("gameOver", handleGameOver); // 이벤트 리스너 등록
-    game.on("computerMove", handleComputerMove);
-    game.on("gameStart", handleGameStart);
-    game.on("move", handleMove);
-    game.on("reload", handleReload);
-    game.on("gameType", handleGameType);
-
-    return () => {
-      game.off("gameOver", handleGameOver); // 클린업
-      game.off("computerMove", handleMove);
-      game.off("gameStart", handleGameStart);
-      game.off("move", handleMove);
-      game.off("reload", handleReload);
-      game.off("gameType", handleGameType);
-    };
-  }, [game]);
-
-  useEffect(() => {
-    const handleShowWinBar = () => {
-      setShowWinBar(game.getShowWinBar());
-    };
-    game.on("showWinBar", handleShowWinBar);
-
-    return () => {
-      game.off("showWinBar", handleShowWinBar);
-    };
-  }, [showWinBar, game]);
-
-  useEffect(() => {
-    const handleShowBestMoves = async (state: any) => {
-      setShowBestMoves(state);
-      if (state) {
-        if (game.getUserColor() === "black") {
+    socket.emit(
+      "requestGameState",
+      { username: user.username, socketId: socket.id },
+      (roomInfo: any, player: any, opponent: any) => {
+        if (roomInfo.error) {
           return;
         }
-        // await game.setBestMove();
-        await game.setWinChanceAndBestMove();
-        setBestMove(game.getBestMove());
-      } else {
-        setBestMove([]);
+        console.log(roomInfo);
+        setRoom(roomInfo);
+        setOpponent(opponent);
+        setUserColor(player.color);
+        if (roomInfo.fen) {
+          setFen(roomInfo.fen);
+          setPrevFen(roomInfo.fen);
+        }
+        // setGame(
+        //   "playerVsPlayer",
+        //   player.color,
+        //   roomInfo.timers[player.color].overallTime
+        // );
+        // game.setRoomId(roomInfo.roomId);
+        // game.setIsGameStarted(true);
+        // setFen(roomInfo.fen);
+        setIsLoading(false);
+        startTimer(roomInfo);
+      }
+    );
+  }, [user.username]);
+
+  // 게임시작
+  useEffect(() => {
+    if (socket) {
+      socket.on("gameStart", (data) => {
+        setRoom(data);
+        const player = data.players.find(
+          (p: any) => p.username === user.username
+        );
+        setUserColor(player.color);
+        const opponent = data.players.find(
+          (p: any) => p.username !== user.username
+        );
+        setOpponent(opponent);
+        setIsLoading(false);
+        startTimer(data);
+        playSound("start");
+      });
+    }
+    return () => {
+      if (socket) {
+        socket.off("gameStart");
       }
     };
-    game.on("showBestMoves", handleShowBestMoves);
+  }, [socket]);
 
-    return () => {
-      game.off("showBestMoves", handleShowBestMoves);
-    };
-  }, [showBestMoves, bestMove, game]);
-
+  // 게임종료
   useEffect(() => {
-    const handleBestMove = () => {
-      console.log(game.getBestMove());
-      setBestMove(game.getBestMove());
-    };
-
-    game.on("bestMove", handleBestMove);
-
+    if (socket) {
+      socket.on("gameOver", (winner, reason, gameTime) => {
+        setWinner(winner);
+        setReason(reason);
+        setGameTime(gameTime);
+        setCloseModal(true);
+        if (reason === "timeOut" || reason === "surrender") {
+          playSound("gameover");
+        } else {
+          playSound("#");
+        }
+      });
+    }
     return () => {
-      game.off("bestMove", handleBestMove);
+      if (socket) {
+        socket.off("gameOver");
+      }
     };
-  });
+  }, [socket]);
+
+  // 움직임
+  useEffect(() => {
+    if (socket) {
+      socket.on("move", (board, move) => {
+        setFen(board);
+        setPrevFen(board);
+        if (move.captured) {
+          playSound(move.san, true);
+        } else {
+          playSound(move.san);
+        }
+      });
+    }
+    return () => {
+      if (socket) {
+        socket.off("move");
+      }
+    };
+  }, [socket]);
+
+  // 업데이트 보드
+  useEffect(() => {
+    if (socket) {
+      socket.on("updateBoard", (history) => {
+        setDuration(0);
+        setFen(history);
+      });
+    }
+    return () => {
+      if (socket) {
+        socket.off("updateBoard");
+      }
+    };
+  }, [socket]);
+
+  // 초기 방 정보
+  // useEffect(() => {
+  //   const handleGameStart = () => {
+  //     setFen(game.getCurrentBoard());
+  //     const roomId = game.getRoomId();
+  //     if (game.getGameMode() === "playerVsPlayer") {
+  //       startTimer();
+  //       socket.emit("getRoomInfo", roomId, (roomInfo: any) => {
+  //         if (roomInfo) {
+  //           console.log(roomInfo);
+  //           setRoom(roomInfo);
+  //           if (user.isLoggedIn) {
+  //             const player = roomInfo.players.find(
+  //               (p: any) => p.username === user.username
+  //             );
+  //             setOpponent(() => {
+  //               const opponent: Player | undefined = roomInfo.players.find(
+  //                 (player: any) => player.username !== user.username
+  //               );
+  //               return opponent ?? undefined;
+  //             });
+  //             if (player) {
+  //               setGame(gameMode);
+  //             } else {
+  //               console.error("User not authenticated");
+  //             }
+  //           }
+  //         }
+  //       });
+  //     } else if (roomId === "computer") {
+  //       setGameMode("playerVsComputer");
+  //       setGame("playerVsComputer", "white");
+  //     }
+  //     playSound("start");
+  //     setFen(game.getCurrentBoard());
+  //     if (showBestMoves) {
+  //       if (game.getUserColor() === "black") return;
+  //       setBestMove(game.getBestMove());
+  //     }
+  //   };
+
+  //   const handleGameOver = (isCheckmate: boolean) => {
+  //     if (!isCheckmate) {
+  //       playSound("gameover");
+  //     }
+  //     socket.emit("gameover", game.getRoomId());
+  //     setIsGameOver(true);
+  //   };
+
+  //   const handleMove = (move: Move) => {
+  //     if (move.captured) {
+  //       playSound(move.san, true);
+  //     } else {
+  //       playSound(move.san);
+  //     }
+  //   };
+
+  //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  //   const handleComputerMove = (move: Move) => {
+  //     // soundPlayer.playMoveSound(move);
+  //     // if (move.captured) {
+  //     //   console.log(3);
+  //     //   const captureAudio = new Audio("/audios/capture.mp3");
+  //     //   captureAudio.play();
+  //     //   playMoveSound(move.san, true);
+  //     // } else {
+  //     //   console.log(4);
+  //     //   const moveAudio = new Audio("/audios/move.mp3");
+  //     //   moveAudio.play();
+  //     //   playMoveSound(move.san);
+  //     // }
+  //     setFen(game.getCurrentBoard());
+  //   };
+
+  //   const handleReload = (fen: any) => {
+  //     setDuration(0);
+  //     setFen(fen);
+  //   };
+
+  //   const handleGameType = () => {
+  //     setTimers(game.getTimers());
+  //   };
+
+  //   game.on("gameOver", handleGameOver); // 이벤트 리스너 등록
+  //   game.on("computerMove", handleComputerMove);
+  //   game.on("gameStart", handleGameStart);
+  //   game.on("move", handleMove);
+  //   game.on("reload", handleReload);
+  //   game.on("gameType", handleGameType);
+
+  //   return () => {
+  //     game.off("gameOver", handleGameOver); // 클린업
+  //     game.off("computerMove", handleMove);
+  //     game.off("gameStart", handleGameStart);
+  //     game.off("move", handleMove);
+  //     game.off("reload", handleReload);
+  //     game.off("gameType", handleGameType);
+  //   };
+  // }, [game]);
+
+  // useEffect(() => {
+  //   const handleShowWinBar = () => {
+  //     setShowWinBar(game.getShowWinBar());
+  //   };
+  //   game.on("showWinBar", handleShowWinBar);
+
+  //   return () => {
+  //     game.off("showWinBar", handleShowWinBar);
+  //   };
+  // }, [showWinBar, game]);
+
+  // useEffect(() => {
+  //   const handleShowBestMoves = async (state: any) => {
+  //     setShowBestMoves(state);
+  //     if (state) {
+  //       if (game.getUserColor() === "black") {
+  //         return;
+  //       }
+  //       // await game.setBestMove();
+  //       await game.setWinChanceAndBestMove();
+  //       setBestMove(game.getBestMove());
+  //     } else {
+  //       setBestMove([]);
+  //     }
+  //   };
+  //   game.on("showBestMoves", handleShowBestMoves);
+
+  //   return () => {
+  //     game.off("showBestMoves", handleShowBestMoves);
+  //   };
+  // }, [showBestMoves, bestMove, game]);
+
+  // useEffect(() => {
+  //   const handleBestMove = () => {
+  //     console.log(game.getBestMove());
+  //     setBestMove(game.getBestMove());
+  //   };
+
+  //   game.on("bestMove", handleBestMove);
+
+  //   return () => {
+  //     game.off("bestMove", handleBestMove);
+  //   };
+  // });
 
   // 체스말움직임
   function onDrop(sourceSquare: any, targetSquare: any) {
-    if (game.getCurrentPlayer() !== game.getUserColor()) return false;
+    if (!room) return false;
     if (duration === 0) {
       setDuration(300);
     }
-    const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
-    if (game.getGameMode() === "playerVsComputer") {
-      if (game.makeMove(moveData)) {
-        // if (showWinBar) {
-        //   game.setWinChanceAndBestMove();
-        //   setWinChance(game.getWinChance());
-        // }
-        setFen(game.getCurrentBoard());
-        setCanMoveSquares({});
-        game.setCurrentPieceSquare("");
-        setBestMove([]);
-        (async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const computerMove = await game.makeComputerMove();
-          if (showWinBar) {
-            setWinChance(game.getWinChance());
-          }
-          setFen(game.getCurrentBoard());
-          // setCurrentPice(null);
-        })();
-      } else {
-        setCanMoveSquares({});
-        game.setCurrentPieceSquare("");
-      }
-      return true;
-    } else {
-      if (game.makeMove(moveData)) {
-        setFen(game.getCurrentBoard());
-        setCanMoveSquares({});
-        game.setCurrentPieceSquare("");
-        const roomId = game.getRoomId();
-        if (roomId) {
-          socket.emit("move", {
-            move: moveData,
-            room: roomId,
-            color: game.getCurrentPlayer(),
-            fen: game.getCurrentBoard(),
-          });
+    const roomId = room.roomId;
+    const moveData = {
+      from: sourceSquare,
+      to: targetSquare,
+      promotion: "q",
+    };
+    socket.emit(
+      "onDrop",
+      moveData,
+      roomId,
+      showWinBar,
+      userColor,
+      (isValidMove: boolean) => {
+        if (isValidMove) {
+          return true;
+        } else {
+          setFen(prevFen);
+          return false;
         }
-        // setCurrentPice(null);
-        return true;
       }
-    }
-
-    // setCurrentPice(null);
-    return false;
+    );
+    return true;
+    //   if (game.getCurrentPlayer() !== game.getUserColor()) return false;
+    //   if (duration === 0) {
+    //     setDuration(300);
+    //   }
+    //   const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
+    //   if (game.getGameMode() === "playerVsComputer") {
+    //     if (game.makeMove(moveData)) {
+    //       // if (showWinBar) {
+    //       //   game.setWinChanceAndBestMove();
+    //       //   setWinChance(game.getWinChance());
+    //       // }
+    //       setFen(game.getCurrentBoard());
+    //       setCanMoveSquares({});
+    //       game.setCurrentPieceSquare("");
+    //       setBestMove([]);
+    //       (async () => {
+    //         // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    //         const computerMove = await game.makeComputerMove();
+    //         if (showWinBar) {
+    //           setWinChance(game.getWinChance());
+    //         }
+    //         setFen(game.getCurrentBoard());
+    //       })();
+    //     } else {
+    //       setCanMoveSquares({});
+    //       game.setCurrentPieceSquare("");
+    //     }
+    //     return true;
+    //   } else {
+    //     if (game.makeMove(moveData)) {
+    //       setFen(game.getCurrentBoard());
+    //       setCanMoveSquares({});
+    //       game.setCurrentPieceSquare("");
+    //       const roomId = game.getRoomId();
+    //       if (roomId) {
+    //         socket.emit("move", {
+    //           move: moveData,
+    //           room: roomId,
+    //           color: game.getCurrentPlayer(),
+    //           fen: game.getCurrentBoard(),
+    //         });
+    //       }
+    //       // setCurrentPice(null);
+    //       return true;
+    //     }
   }
 
+  //   // setCurrentPice(null);
+  //   return false;
+  // }
+
   // 상대 움직임 반영
-  useEffect(() => {
-    socket.on("move", (move) => {
-      game.makeMove(move);
-      setFen(game.getCurrentBoard());
-    });
-  }, [game]);
+  // useEffect(() => {
+  //   socket.on("move", (move) => {
+  //     game.makeMove(move);
+  //     setFen(game.getCurrentBoard());
+  //   });
+  // }, [game]);
 
   // 타이머 갱신
-  const startTimer = () => {
-    console.log(game.getRoomId());
-    if (!game) return;
-    if (!game.getIsGameStarted()) return;
-    console.log(game.getRoomId());
-
+  const startTimer = (roomInfo: Room) => {
     const interval = setInterval(() => {
-      if (game) {
-        const timeoutPlayer = game.checkTimeout();
-        if (timeoutPlayer) {
-          setOver(true);
-          game.handleGameOver();
-          clearInterval(interval);
-        } else {
-          // setTimers(game.getTimers());
-          socket.emit("getTimers", game.getRoomId(), ({ timers }: any) => {
-            setTimers(timers);
-          });
+      socket.emit(
+        "getTimers",
+        roomInfo.roomId,
+        ({ timers, timeoutPlayer, gameOver }: any) => {
+          if (gameOver) {
+            clearInterval(interval);
+            setTimers({ white: 0, black: 0 });
+          }
+          setTimers(timers);
+
+          if (timeoutPlayer === "white" || timeoutPlayer === "black") {
+            setTimers({ white: 0, black: 0 });
+            clearInterval(interval);
+            // socket.emit("gameover", roomInfo.roomId);
+          }
         }
-      }
+      );
+      // if (game) {
+      //   const timeoutPlayer = game.checkTimeout();
+      //   if (timeoutPlayer) {
+      //     setOver(true);
+      //     game.handleGameOver();
+      //     clearInterval(interval);
+      //   } else {
+      //     // setTimers(game.getTimers());
+      //     socket.emit("getTimers", game.getRoomId(), ({ timers }: any) => {
+      //       setTimers(timers);
+      //     });
+      //   }
+      // }
     }, 200);
 
     return () => clearInterval(interval);
@@ -308,24 +449,44 @@ function ChessGame() {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handlePieceClick(piece: any, square: any) {
-    if (!game.getIsGameStarted() || game.getIsGameOver()) {
-      return;
-    }
-    // 상대 피스 클릭시
-    if (game.getUserColor()[0] !== piece[0]) return;
+    if (!room) return;
+    const roomId = room.roomId;
+    socket.emit(
+      "pieceClick",
+      piece,
+      square,
+      userColor,
+      roomId,
+      (canMoveSquares: any) => {
+        setCanMoveSquares(canMoveSquares);
+      }
+    );
 
-    game.setCurrentPieceSquare(square);
-    const canMoveSquares = game.handleSquareClick(square);
-    setCanMoveSquares(canMoveSquares);
+    // game.setCurrentPieceSquare(square);
+    // const canMoveSquares = game.handleSquareClick(square);
+    // setCanMoveSquares(canMoveSquares);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleSquareClick(square: any, piece: any) {
-    if (!game.getIsGameStarted() || game.getIsGameOver()) {
-      return;
-    }
-    if (game.getCurrentPieceSquare() === square) return;
-    onDrop(game.getCurrentPieceSquare(), square);
+    // if (!game.getIsGameStarted() || game.getIsGameOver()) {
+    //   return;
+    // }
+    if (!room) return;
+    const roomId = room.roomId;
+    socket.emit(
+      "squareClick",
+      roomId,
+      square,
+      (boolean: boolean, from: string) => {
+        if (boolean) {
+          onDrop(from, square);
+          setCanMoveSquares({});
+        }
+      }
+    );
+    // if (game.getCurrentPieceSquare() === square) return;
+    // onDrop(game.getCurrentPieceSquare(), square);
   }
 
   function onPieceDragEnd() {
@@ -333,7 +494,7 @@ function ChessGame() {
   }
 
   const onClose = () => {
-    setIsGameOver(false);
+    setCloseModal(false);
   };
 
   return (
@@ -351,11 +512,11 @@ function ChessGame() {
         ) : (
           <>상대</>
         )}
-        {gameMode === "playerVsComputer" ? null : (
+        {gameType === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-neutral-700 p-2 px-4 rounded">
             <ClockIcon className="size-6" />
             <p>
-              {game.getUserColor() === "black"
+              {userColor === "black"
                 ? timeString(Number(msToSec(timers.white)))
                 : timeString(Number(msToSec(timers.black)))}
             </p>
@@ -364,9 +525,13 @@ function ChessGame() {
       </div>
       <div className="w-80 sm:w-[450px] md:w-[620px]">
         <Chessboard
-          position={fen}
+          position={
+            isLoading
+              ? "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+              : fen
+          }
           onPieceDrop={onDrop}
-          boardOrientation={game.getUserColor() === "white" ? "white" : "black"}
+          boardOrientation={userColor === "white" ? "white" : "black"}
           areArrowsAllowed={true}
           onSquareClick={handleSquareClick}
           onPieceClick={handlePieceClick}
@@ -396,19 +561,27 @@ function ChessGame() {
             {room ? <>({user[`${room!.gameMode}Rating`]})</> : null}
           </span>
         </div>
-        {gameMode === "playerVsComputer" ? null : (
+        {gameType === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-white p-2 px-4 rounded text-black">
             <ClockIcon className="size-6" />
             <p>
-              {game.getUserColor() === "white"
+              {userColor === "white"
                 ? timeString(Number(msToSec(timers.white)))
                 : timeString(Number(msToSec(timers.black)))}
             </p>
           </div>
         )}
       </div>
-      {isGameOver ? (
-        <GameResultModal winner={game.getWinner()} onClose={onClose} />
+      {closeModal ? (
+        <GameResultModal
+          winner={winner}
+          reason={reason}
+          gameTime={gameTime}
+          rating={user[`${room!.gameMode}Rating`]}
+          opponentRating={opponent?.rating}
+          userColor={userColor}
+          onClose={onClose}
+        />
       ) : null}
     </div>
   );

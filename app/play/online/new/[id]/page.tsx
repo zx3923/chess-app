@@ -7,13 +7,16 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/solid";
+import { socket } from "@/lib/socket";
+import { useUser } from "@/lib/context/UserContext";
 
-import { useChess } from "@/lib/context/ChessContext";
+// import { useChess } from "@/lib/context/ChessContext";
 
 export default function NewPage() {
-  const { game } = useChess();
+  // const { game } = useChess();
+  const { user } = useUser();
   // const [isStarted, setIsStarted] = useState(true);
-  const [isGameOver, setIsGameOver] = useState(false);
+  // const [isGameOver, setIsGameOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedMove, setSelectedMove] = useState<number>(-1);
   const [notation, setNotation] = useState<
@@ -21,6 +24,7 @@ export default function NewPage() {
   >([]);
 
   const [history, setHistory] = useState<Move[]>([]);
+  const [lastMoveIndex, setLastMoveIndex] = useState(0);
 
   // useEffect(() => {
   //   game.play();
@@ -34,37 +38,66 @@ export default function NewPage() {
   }, [notation]);
 
   useEffect(() => {
-    const handleGameOver = () => {
-      setIsGameOver(true);
-    };
-
-    const handleMove = (move: any, history: Move[]) => {
-      setNotation((prev) => {
-        if (move.color === "w") {
-          const movedata = {
-            moveNumber: prev.length + 1,
-            whiteMove: move.san,
-            blackMove: "",
-          };
-          return [...prev, movedata];
-        } else {
-          const updated = [...prev];
-          updated[updated.length - 1].blackMove = move.san;
-          return updated;
-        }
+    if (socket) {
+      socket.on("updateNotation", (move, history, moveIndex) => {
+        setNotation((prev) => {
+          if (move.color === "w") {
+            const moveData = {
+              moveNumber: prev.length + 1,
+              whiteMove: move.san,
+              blackMove: "",
+            };
+            return [...prev, moveData];
+          } else {
+            const updated = [...prev];
+            updated[updated.length - 1].blackMove = move.san;
+            return updated;
+          }
+        });
+        setHistory(history);
+        setSelectedMove(moveIndex);
+        setLastMoveIndex(moveIndex);
       });
-      setHistory(history);
-      setSelectedMove((prev) => prev + 1);
-    };
-
-    game.on("gameOver", handleGameOver);
-    game.on("move", handleMove);
-
+    }
     return () => {
-      game.off("gameOver", handleGameOver);
-      game.off("move", handleMove);
+      if (socket) {
+        socket.off("updateNotation");
+      }
     };
-  }, [game]);
+  }, [socket]);
+
+  // useEffect(() => {
+  //   const handleGameOver = () => {
+  //     setIsGameOver(true);
+  //   };
+
+  //   const handleMove = (move: any, history: Move[]) => {
+  //     setNotation((prev) => {
+  //       if (move.color === "w") {
+  //         const movedata = {
+  //           moveNumber: prev.length + 1,
+  //           whiteMove: move.san,
+  //           blackMove: "",
+  //         };
+  //         return [...prev, movedata];
+  //       } else {
+  //         const updated = [...prev];
+  //         updated[updated.length - 1].blackMove = move.san;
+  //         return updated;
+  //       }
+  //     });
+  //     setHistory(history);
+  //     setSelectedMove((prev) => prev + 1);
+  //   };
+
+  //   game.on("gameOver", handleGameOver);
+  //   game.on("move", handleMove);
+
+  //   return () => {
+  //     game.off("gameOver", handleGameOver);
+  //     game.off("move", handleMove);
+  //   };
+  // }, [game]);
 
   // useEffect(() => {
   //   game.setGameMode("playerVsPlayer");
@@ -75,19 +108,18 @@ export default function NewPage() {
   //   setIsStarted(true);
   // };
 
-  const handleRestartBtn = () => {
-    game.restartGame();
-    setIsGameOver(false);
-    setNotation([]);
-  };
+  // const handleRestartBtn = () => {
+  //   game.restartGame();
+  //   setIsGameOver(false);
+  //   setNotation([]);
+  // };
 
   const handleSurrender = () => {
-    game.surrender();
+    socket.emit("surrender", user.username);
   };
 
   const handlePrevMove = () => {
-    if (selectedMove === -1 || selectedMove === 0) return;
-    console.log(selectedMove);
+    if (selectedMove <= 0) return;
     const prevMove = selectedMove - 1;
     setSelectedMove(prevMove);
     handleMoveClick(
@@ -97,8 +129,7 @@ export default function NewPage() {
   };
 
   const handleNextMove = () => {
-    if (selectedMove === -1 || selectedMove >= notation.length * 2 - 1) return;
-    console.log(selectedMove);
+    if (selectedMove >= lastMoveIndex) return;
     const nextMove = selectedMove + 1;
     setSelectedMove(nextMove);
     handleMoveClick(
@@ -110,8 +141,10 @@ export default function NewPage() {
   const handleMoveClick = (moveNumber: number, color: "white" | "black") => {
     const moveIndex = moveNumber * 2 + (color === "black" ? 1 : 0);
     setSelectedMove(moveIndex);
-    game.setCurrentBoard(
-      history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after
+    socket.emit(
+      "moveClick",
+      history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after,
+      user.username
     );
   };
 
@@ -197,16 +230,16 @@ export default function NewPage() {
           </button>
         </div>
       </div>
-      {isGameOver ? (
+      {/* {isGameOver ? (
         <>
           <button
             className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
-            onClick={handleRestartBtn}
+            // onClick={handleRestartBtn}
           >
             재대결
           </button>
         </>
-      ) : null}
+      ) : null} */}
     </div>
   );
 }

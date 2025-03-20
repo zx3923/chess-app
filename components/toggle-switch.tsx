@@ -1,6 +1,6 @@
 "use client";
 
-import { useChess } from "@/lib/context/ChessContext";
+// import { useChess } from "@/lib/context/ChessContext";
 import { useState } from "react";
 
 interface ToggleSwitchProps {
@@ -19,7 +19,7 @@ export default function ToggleSwitch({
   size = "md",
 }: ToggleSwitchProps) {
   const [isChecked, setIsChecked] = useState(isOn);
-  const { game } = useChess();
+  // const { game } = useChess();
 
   const handleToggle = () => {
     if (disabled) return;
@@ -28,9 +28,9 @@ export default function ToggleSwitch({
     setIsChecked(newState);
     onToggle?.(newState);
     if (label === "평가 막대") {
-      game.setShowWinBar(newState);
+      // game.setShowWinBar(newState);
     } else if (label === "수 보이기") {
-      game.setShowBestMoves(newState);
+      // game.setShowBestMoves(newState);
     }
   };
 

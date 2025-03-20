@@ -1,22 +1,32 @@
-import { useChess } from "@/lib/context/ChessContext";
+// import { useChess } from "@/lib/context/ChessContext";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { ClockIcon, TrophyIcon } from "@heroicons/react/24/outline";
 
 interface GameResultModalProps {
   winner: string;
+  reason: string;
+  gameTime: number;
+  rating: number | undefined;
+  opponentRating: number | undefined;
+  userColor: string;
   onClose: () => void;
 }
 
 export default function GameResultModal({
   winner,
+  reason,
+  gameTime,
+  rating,
+  opponentRating,
+  userColor,
   onClose,
 }: GameResultModalProps) {
-  const { game } = useChess();
+  // const { game } = useChess();
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-neutral-800 rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
         <div className="bg-neutral-900 text-white p-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold">Game Results</h2>
+          <h2 className="text-xl font-bold">게임 결과</h2>
           <button
             onClick={onClose}
             className="text-neutral-400 hover:text-white transition-colors"
@@ -35,14 +45,16 @@ export default function GameResultModal({
               </div>
               <div className="ml-3">
                 <p className="font-semibold text-white">
-                  {game.getUserColor() === "white" ? "You (White)" : "Opponent"}
+                  {userColor === "white" ? "You (White)" : "Opponent"}
                 </p>
-                <p className="text-sm text-neutral-400">Rating: 1250</p>
+                <p className="text-sm text-neutral-400">
+                  {userColor === "white" ? rating : opponentRating}
+                </p>
               </div>
             </div>
             <div className="bg-neutral-100 px-3 py-1 rounded-full flex items-center">
               {/* 트로피 아이콘 */}
-              {game.getWinner() === "white" ? (
+              {winner === "white" ? (
                 <TrophyIcon className="size-4 mr-2 text-yellow-500" />
               ) : null}
               <span className="text-sm font-medium">+15</span>
@@ -51,20 +63,21 @@ export default function GameResultModal({
 
           <div className="flex justify-between items-center">
             <div className="flex items-center">
-              <div className="w-12 h-12 bg-neutral-800 rounded-full flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white font-bold text-lg">
                 B
               </div>
               <div className="ml-3">
                 <p className="font-semibold text-white">
-                  {" "}
-                  {game.getUserColor() === "black" ? "You (White)" : "Opponent"}
+                  {userColor === "black" ? "You (black)" : "Opponent"}
                 </p>
-                <p className="text-sm text-neutral-400">Rating: 1235</p>
+                <p className="text-sm text-neutral-400">
+                  {userColor === "black" ? rating : opponentRating}
+                </p>
               </div>
             </div>
             <div className="bg-neutral-100 px-3 py-1 rounded-full flex items-center">
               {/* 트로피 아이콘 */}
-              {game.getWinner() === "black" ? (
+              {winner === "black" ? (
                 <TrophyIcon className="size-4 mr-2 text-yellow-500" />
               ) : null}
               <span className="text-sm font-medium text-red-500">-15</span>
@@ -72,26 +85,27 @@ export default function GameResultModal({
           </div>
         </div>
         <div className="px-5 pb-5">
-          <h3 className="font-semibold text-white mb-3">Game Statistics</h3>
+          <h3 className="font-semibold text-white mb-3">게임 정보</h3>
           <div className="bg-neutral-700 rounded-lg p-4 grid grid-cols-1 gap-4">
             <div className="flex items-center">
               <ClockIcon className="size-5 text-white mr-2" />
               <div>
-                <p className="text-sm text-neutral-300">Game Duration</p>
-                <p className="font-medium text-white">
-                  {game.getGameDuration()}
-                </p>
+                <p className="text-sm text-neutral-300">게임 시간</p>
+                <p className="font-medium text-white">{gameTime}</p>
               </div>
             </div>
             <div>
-              <p className="text-sm text-neutral-300">Moves</p>
+              {/* <p className="text-sm text-neutral-300">사유</p> */}
               <p className="font-medium text-white">
-                {game.getIsSurrender()
+                {/* {game.getIsSurrender()
                   ? `${
                       game.getWinner() === "white" ? "black" : "white"
                     } 님의 항복`
                   : `${game.getMoveHistory().length}
-                 수 체크메이트`}
+                 수 체크메이트`} */}
+                {reason === "timeOut" ? "시간종료" : null}
+                {reason === "gameOver" ? "체크메이트" : null}
+                {reason === "surrender" ? "항복" : null}
               </p>
             </div>
           </div>
