@@ -1,6 +1,6 @@
 "use client";
 
-import { Move, Square } from "chess.js";
+import { Square } from "chess.js";
 import { socket } from "@/lib/socket";
 import { Chessboard } from "react-chessboard";
 import { useState, useEffect, Suspense } from "react";
@@ -13,6 +13,7 @@ import GameResultModal from "./GameResultModal";
 import { msToSec, timeString } from "@/lib/timer";
 import { useUser } from "@/lib/context/UserContext";
 import { useMenu } from "@/lib/context/MenuContext";
+import { redirect } from "next/navigation";
 // import { useChess } from "@/lib/context/ChessContext";
 
 interface Player {
@@ -33,16 +34,17 @@ type Arrow = [Square, Square, (string | undefined)?];
 type GameType = "playerVsPlayer" | "playerVsComputer" | null;
 
 function ChessGame() {
-  const { user } = useUser();
+  const { user, setUser } = useUser();
   const { isMenuOpen } = useMenu();
   const [isLoading, setIsLoading] = useState(true);
   // const { game, setGame } = useChess();
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [winner, setWinner] = useState("");
+  const [winColor, setWinColor] = useState("");
   const [reason, setReason] = useState("");
   const [gameTime, setGameTime] = useState(0);
   const [userColor, setUserColor] = useState<string>("white");
+  const [eloResult, setEloResult] = useState(0);
   const [opponent, setOpponent] = useState<Player | undefined>();
   const [closeModal, setCloseModal] = useState(false);
   const [isGameOver, setIsGameOver] = useState(false);
@@ -66,6 +68,7 @@ function ChessGame() {
 
   // 새로고침
   useEffect(() => {
+    console.log(1);
     socket.emit(
       "requestGameState",
       { username: user.username, socketId: socket.id },
@@ -73,7 +76,7 @@ function ChessGame() {
         if (roomInfo.error) {
           return;
         }
-        console.log(roomInfo);
+        console.log(2);
         setRoom(roomInfo);
         setOpponent(opponent);
         setUserColor(player.color);
@@ -89,8 +92,11 @@ function ChessGame() {
         // game.setRoomId(roomInfo.roomId);
         // game.setIsGameStarted(true);
         // setFen(roomInfo.fen);
-        setIsLoading(false);
         startTimer(roomInfo);
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
+        redirect(`/play/online/new/${roomInfo.roomId}`);
       }
     );
   }, [user.username]);
@@ -123,16 +129,21 @@ function ChessGame() {
   // 게임종료
   useEffect(() => {
     if (socket) {
-      socket.on("gameOver", (winner, reason, gameTime) => {
-        setWinner(winner);
-        setReason(reason);
-        setGameTime(gameTime);
+      socket.on("gameOver", (data) => {
+        console.log(1);
+        console.log(data);
+        setWinColor(data.winColor);
+        setReason(data.reason);
+        setGameTime(data.gameTime);
         setCloseModal(true);
-        if (reason === "timeOut" || reason === "surrender") {
+        setEloResult(data.eloResult);
+        const win = data.winner.id === user.id;
+        if (data.reason === "timeOut" || data.reason === "surrender") {
           playSound("gameover");
         } else {
           playSound("#");
         }
+        // updateRating(eloResult, win, gameMode);
       });
     }
     return () => {
@@ -176,6 +187,24 @@ function ChessGame() {
       }
     };
   }, [socket]);
+
+  async function updateRating(
+    eloResult: number,
+    win: boolean,
+    gameMode: string
+  ) {
+    const response = await fetch("/api/updateRating", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        win,
+        eloResult,
+        gameMode,
+      }),
+    });
+  }
 
   // 초기 방 정보
   // useEffect(() => {
@@ -420,13 +449,13 @@ function ChessGame() {
             clearInterval(interval);
             setTimers({ white: 0, black: 0 });
           }
-          setTimers(timers);
-
           if (timeoutPlayer === "white" || timeoutPlayer === "black") {
             setTimers({ white: 0, black: 0 });
+            // socket.emit("timeOver", roomInfo.roomId);
             clearInterval(interval);
             // socket.emit("gameover", roomInfo.roomId);
           }
+          setTimers(timers);
         }
       );
       // if (game) {
@@ -524,22 +553,22 @@ function ChessGame() {
         )}
       </div>
       <div className="w-80 sm:w-[450px] md:w-[620px]">
-        <Chessboard
-          position={
-            isLoading
-              ? "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-              : fen
-          }
-          onPieceDrop={onDrop}
-          boardOrientation={userColor === "white" ? "white" : "black"}
-          areArrowsAllowed={true}
-          onSquareClick={handleSquareClick}
-          onPieceClick={handlePieceClick}
-          customSquareStyles={canMoveSquares}
-          onPieceDragEnd={onPieceDragEnd}
-          animationDuration={duration}
-          customArrows={bestMove}
-        />
+        {isLoading ? (
+          <Chessboard />
+        ) : (
+          <Chessboard
+            position={fen}
+            onPieceDrop={onDrop}
+            boardOrientation={userColor === "white" ? "white" : "black"}
+            areArrowsAllowed={true}
+            onSquareClick={handleSquareClick}
+            onPieceClick={handlePieceClick}
+            customSquareStyles={canMoveSquares}
+            onPieceDragEnd={onPieceDragEnd}
+            animationDuration={duration}
+            customArrows={bestMove}
+          />
+        )}
         {showWinBar ? (
           <div className="w-full h-6 bg-gray-800 rounded-lg overflow-hidden flex border border-gray-600 mt-4">
             <div
@@ -574,12 +603,13 @@ function ChessGame() {
       </div>
       {closeModal ? (
         <GameResultModal
-          winner={winner}
+          winColor={winColor}
           reason={reason}
           gameTime={gameTime}
           rating={user[`${room!.gameMode}Rating`]}
           opponentRating={opponent?.rating}
           userColor={userColor}
+          eloResult={eloResult}
           onClose={onClose}
         />
       ) : null}

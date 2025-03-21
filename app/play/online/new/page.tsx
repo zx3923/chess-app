@@ -18,22 +18,33 @@ export default function PlayNew() {
 
   const hnandleStartBtn = () => {
     setIsMatching(true);
-    socket.emit("joinQueue", {
-      user: user,
-      gameMode: selectedType,
-    });
+    socket.emit(
+      "joinQueue",
+      {
+        user: user,
+        gameMode: selectedType,
+      },
+      (response: any) => {
+        if (!response.success) {
+          console.log(response.message);
+          setIsMatching(false);
+          return;
+        }
+        console.log("started");
+      }
+    );
   };
 
   const handleSelect = (gameType: string) => {
     setSelectedType(gameType);
-    const timer =
-      gameType === "rapid"
-        ? 600000
-        : gameType === "blitz"
-        ? 180000
-        : gameType === "bullet"
-        ? 60000
-        : 0;
+    // const timer =
+    //   gameType === "rapid"
+    //     ? 600000
+    //     : gameType === "blitz"
+    //     ? 180000
+    //     : gameType === "bullet"
+    //     ? 60000
+    // : 0;
     // game.setTimers(timer);
     // console.log(game.getTimers());
   };

@@ -32,15 +32,31 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     console.log("a user connected. id: ", socket.id);
     // 매칭 요청
-    socket.on("joinQueue", ({ user, gameMode }) => {
+    socket.on("joinQueue", ({ user, gameMode }, callback) => {
       if (!waitingQueues[gameMode]) {
         console.error(`Invalid game mode: ${gameMode}`);
         return;
       }
 
+      const existingRoom = [...rooms.values()].find((room) =>
+        room.players.some((player) => player.id === user.id)
+      );
+
+      if (existingRoom) {
+        console.log(`User ${user.username} is already in a room.`);
+        console.log(existingRoom);
+        if (existingRoom.game.getIsGameOver()) {
+          // 방이 있지만 게임이 이미 종료되었을 경우 방 삭제 후 매칭 시도
+          rooms.delete(existingRoom.roomId);
+        } else {
+          return callback({ success: false, message: "Already in a room" });
+        }
+      }
+
       waitingQueues[gameMode].push({ socketId: socket.id, ...user });
       const match = tryToMatch(waitingQueues[gameMode], gameMode);
 
+      console.log("!!");
       // 적합한 매칭이 있다면
       if (match) {
         const { player1, player2 } = match;
@@ -55,22 +71,25 @@ app.prepare().then(() => {
           io.to(player.socketId).socketsJoin(roomId)
         );
 
+        const roomPlayer1 = {
+          socketId: player1.socketId,
+          id: player1.id,
+          username: player1.username,
+          color: player1Color,
+          rating: getRatingByMode(player1, gameMode),
+        };
+
+        const roomPlayer2 = {
+          socketId: player2.socketId,
+          id: player2.id,
+          username: player2.username,
+          color: player2Color,
+          rating: getRatingByMode(player2, gameMode),
+        };
+
         rooms.set(roomId, {
           roomId,
-          players: [
-            {
-              id: player1.socketId,
-              username: player1.username,
-              color: player1Color,
-              rating: getRatingByMode(player1, gameMode),
-            },
-            {
-              id: player2.socketId,
-              username: player2.username,
-              color: player2Color,
-              rating: getRatingByMode(player2, gameMode),
-            },
-          ],
+          players: [roomPlayer1, roomPlayer2],
           // timers: { white: initialTime, black: initialTime },
           timers: {
             white: new Timer(initialTime),
@@ -80,7 +99,12 @@ app.prepare().then(() => {
           currentTurn: "white",
           gameMode,
           fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-          game: new Game("playerVsPlayer", initialTime, player1, player2),
+          game: new Game(
+            "playerVsPlayer",
+            initialTime,
+            roomPlayer1,
+            roomPlayer2
+          ),
         });
 
         io.to(player1.socketId).emit("matchFound", {
@@ -98,8 +122,8 @@ app.prepare().then(() => {
           roomId,
           initialTime,
         });
-
         const room = rooms.get(roomId);
+        console.log(room);
 
         room.timers.white.start();
         room.game.play();
@@ -108,6 +132,7 @@ app.prepare().then(() => {
       } else {
         console.log("No match found, added to queue");
       }
+      callback({ success: true });
     });
 
     // 매칭 취소
@@ -144,6 +169,18 @@ app.prepare().then(() => {
       callback(room, player, opponent);
     });
 
+    socket.on("requestNotation", ({ username }, callback) => {
+      const room = [...rooms.values()].find((r) =>
+        r.players.some((p) => p.username === username)
+      );
+      if (!room) return callback({ error: "Room not found" });
+      callback(
+        room.game.getNotation(),
+        room.game.chess.history({ verbose: true }),
+        room.game.getMoveNumber()
+      );
+    });
+
     // 항복
     socket.on("surrender", (username) => {
       const room = [...rooms.values()].find((r) =>
@@ -151,12 +188,20 @@ app.prepare().then(() => {
       );
       if (!room) return callback({ error: "Room not found" });
       room.game.surrender();
-      io.in(room.roomId).emit(
-        "gameOver",
-        room.game.getWinner(),
-        "surrender",
-        room.game.getGameDuration()
+      const winner = room.players.find(
+        (p) => p.color === room.game.getWinner()
       );
+      io.in(room.roomId).emit("gameOver", {
+        winner,
+        winColor: room.game.getWinner(),
+        reason: "surrender",
+        gameTime: room.game.getGameDuration(),
+        eloResult: room.game.getEloResult(),
+        gameMode: room.gameMode,
+      });
+      io.in(room.roomId).emit("endGame");
+
+      // rooms.delete(room.roomId);
     });
 
     // 체스말 움직임
@@ -174,7 +219,7 @@ app.prepare().then(() => {
         if (room.game.getGameType() === "playerVsComputer") {
           console.log("vsComputer");
           if (room.game.makeMove(moveData)) {
-            room.game.increaseMoveIndex();
+            // room.game.increaseMoveIndex();
             if (showWinBar) {
               room.game.setWinChanceAndBestMove();
               // 소켓으로 값보내주기 ?
@@ -182,7 +227,7 @@ app.prepare().then(() => {
             // 소켓으로 보드값 보내주기 ?
             (async () => {
               const computerMove = await room.game.makeComakeComputerMove();
-              room.game.increaseMoveIndex();
+              // room.game.increaseMoveIndex();
               if (showWinBar) {
                 //소켓으로 값보내주기
               }
@@ -197,7 +242,7 @@ app.prepare().then(() => {
         } else {
           console.log("vsPlayer");
           if (room.game.makeMove(moveData)) {
-            room.game.increaseMoveIndex();
+            // room.game.increaseMoveIndex();
             room.fen = room.game.getCurrentBoard();
             room.game.setCurrentPieceSquare("");
             io.in(roomId).emit(
@@ -207,17 +252,25 @@ app.prepare().then(() => {
             );
             io.in(roomId).emit(
               "updateNotation",
-              room.game.getCurrentMove(),
+              room.game.getNotation(),
               room.game.chess.history({ verbose: true }),
-              room.game.getMoveIndex()
+              room.game.getMoveNumber()
             );
             if (room.game.chess.isGameOver()) {
-              io.in(roomId).emit(
-                "gameOver",
-                room.game.getWinner(),
-                "gameOver",
-                room.game.getGameDuration()
+              const winner = room.players.find(
+                (p) => p.color === room.game.getWinner()
               );
+              io.in(roomId).emit("gameOver", {
+                winner,
+                winColor: room.game.getWinner(),
+                reason: "gameOver",
+                gameTime: room.game.getGameDuration(),
+                eloResult: room.game.getEloResult(),
+                gameMode: room.gameMode,
+              });
+
+              io.in(room.roomId).emit("endGame");
+              // rooms.delete(room.roomId);
             }
             callback(true);
             return;
@@ -308,15 +361,54 @@ app.prepare().then(() => {
       const timeoutPlayer = room.game.checkTimeout();
       const gameOver = room.game.getIsGameOver();
       if (timeoutPlayer === "white" || timeoutPlayer === "black") {
-        io.in(roomId).emit(
-          "gameOver",
-          room.game.getWinner(),
-          "timeOut",
-          room.game.getGameDuration()
+        room.game.handleGameOver();
+        const winner = room.players.find(
+          (p) => p.color === room.game.getWinner()
         );
+        io.in(roomId).emit("gameOver", {
+          winner,
+          winColor: room.game.getWinner(),
+          reason: "timeOut",
+          gameTime: room.game.getGameDuration(),
+          eloResult: room.game.getEloResult(),
+          gameMode: room.gameMode,
+        });
+
+        io.in(room.roomId).emit("endGame");
         // rooms.delete(roomId);
       }
       callback({ timers, timeoutPlayer, gameOver });
+    });
+
+    // socket.on("timeOver", (roomId) => {
+    //   const room = rooms.get(roomId);
+    //   if (!room) return;
+    //   const winner = room.players.find(
+    //     (p) => p.color === room.game.getWinner()
+    //   );
+    //   io.in(roomId).emit("gameOver", {
+    //     winner,
+    //     winColor: room.game.getWinner(),
+    //     reason: "timeOut",
+    //     gameTime: room.game.getGameDuration(),
+    //     eloResult: room.game.getEloResult(),
+    //     gameMode: room.gameMode,
+    //   });
+    //   io.in(room.roomId).emit("endGame");
+    // });
+
+    socket.on("deleteRoom", (username) => {
+      console.log("delete room");
+      for (let [roomId, room] of rooms) {
+        const player = room.players.find((p) => p.username === username);
+        if (player) {
+          console.log(`${roomId} ${player.username}`);
+          rooms.delete(roomId);
+
+          socket.to(roomId).emit("roomDeleted");
+          return;
+        }
+      }
     });
 
     socket.on("disconnect", () => {
@@ -325,7 +417,7 @@ app.prepare().then(() => {
       gameRooms.forEach((room) => {
         console.log("disconnect room : ", room);
         const userInRoom = room.players.find(
-          (player) => player.id === socket.id
+          (player) => player.socketId === socket.id
         );
 
         if (userInRoom) {

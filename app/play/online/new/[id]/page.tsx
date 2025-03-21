@@ -9,6 +9,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { socket } from "@/lib/socket";
 import { useUser } from "@/lib/context/UserContext";
+import { redirect } from "next/navigation";
 
 // import { useChess } from "@/lib/context/ChessContext";
 
@@ -16,7 +17,7 @@ export default function NewPage() {
   // const { game } = useChess();
   const { user } = useUser();
   // const [isStarted, setIsStarted] = useState(true);
-  // const [isGameOver, setIsGameOver] = useState(false);
+  const [isGameOver, setIsGameOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedMove, setSelectedMove] = useState<number>(-1);
   const [notation, setNotation] = useState<
@@ -39,21 +40,8 @@ export default function NewPage() {
 
   useEffect(() => {
     if (socket) {
-      socket.on("updateNotation", (move, history, moveIndex) => {
-        setNotation((prev) => {
-          if (move.color === "w") {
-            const moveData = {
-              moveNumber: prev.length + 1,
-              whiteMove: move.san,
-              blackMove: "",
-            };
-            return [...prev, moveData];
-          } else {
-            const updated = [...prev];
-            updated[updated.length - 1].blackMove = move.san;
-            return updated;
-          }
-        });
+      socket.on("updateNotation", (notation, history, moveIndex) => {
+        setNotation(notation);
         setHistory(history);
         setSelectedMove(moveIndex);
         setLastMoveIndex(moveIndex);
@@ -64,6 +52,38 @@ export default function NewPage() {
         socket.off("updateNotation");
       }
     };
+  }, [socket]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("endGame", () => {
+        setIsGameOver(true);
+      });
+    }
+    return () => {
+      if (socket) {
+        socket.off("endGame");
+      }
+    };
+  }, [socket]);
+
+  // 새로고침
+  useEffect(() => {
+    if (socket) {
+      socket.emit(
+        "requestNotation",
+        { username: user.username },
+        (notation: any, history: any, moveIndex: any) => {
+          if (notation.error) {
+            return;
+          }
+          setNotation(notation);
+          setHistory(history);
+          setSelectedMove(moveIndex);
+          setLastMoveIndex(moveIndex);
+        }
+      );
+    }
   }, [socket]);
 
   // useEffect(() => {
@@ -108,11 +128,10 @@ export default function NewPage() {
   //   setIsStarted(true);
   // };
 
-  // const handleRestartBtn = () => {
-  //   game.restartGame();
-  //   setIsGameOver(false);
-  //   setNotation([]);
-  // };
+  const handleNewGame = () => {
+    socket.emit("deleteRoom", user.username);
+    redirect("/play/online/new");
+  };
 
   const handleSurrender = () => {
     socket.emit("surrender", user.username);
@@ -230,16 +249,16 @@ export default function NewPage() {
           </button>
         </div>
       </div>
-      {/* {isGameOver ? (
+      {isGameOver ? (
         <>
           <button
             className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
-            // onClick={handleRestartBtn}
+            onClick={handleNewGame}
           >
-            재대결
+            새 게임
           </button>
         </>
-      ) : null} */}
+      ) : null}
     </div>
   );
 }

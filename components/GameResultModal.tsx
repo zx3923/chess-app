@@ -3,22 +3,24 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { ClockIcon, TrophyIcon } from "@heroicons/react/24/outline";
 
 interface GameResultModalProps {
-  winner: string;
+  winColor: string;
   reason: string;
   gameTime: number;
   rating: number | undefined;
   opponentRating: number | undefined;
   userColor: string;
+  eloResult: number;
   onClose: () => void;
 }
 
 export default function GameResultModal({
-  winner,
+  winColor,
   reason,
   gameTime,
   rating,
   opponentRating,
   userColor,
+  eloResult,
   onClose,
 }: GameResultModalProps) {
   // const { game } = useChess();
@@ -35,7 +37,7 @@ export default function GameResultModal({
           </button>
         </div>
         <div className="bg-emerald-600 text-white py-3 px-4 text-center font-bold text-lg">
-          {winner === "white" ? "백 승리!" : "흑 승리!"}
+          {winColor === "white" ? "백 승리!" : "흑 승리!"}
         </div>
         <div className="p-5">
           <div className="flex justify-between items-center mb-6">
@@ -54,10 +56,16 @@ export default function GameResultModal({
             </div>
             <div className="bg-neutral-100 px-3 py-1 rounded-full flex items-center">
               {/* 트로피 아이콘 */}
-              {winner === "white" ? (
-                <TrophyIcon className="size-4 mr-2 text-yellow-500" />
-              ) : null}
-              <span className="text-sm font-medium">+15</span>
+              {winColor === "white" ? (
+                <>
+                  <TrophyIcon className="size-4 mr-2 text-yellow-500" />
+                  <span className="text-sm font-medium">+{eloResult}</span>
+                </>
+              ) : (
+                <span className="text-sm font-medium text-red-500">
+                  -{eloResult}
+                </span>
+              )}
             </div>
           </div>
 
@@ -77,10 +85,16 @@ export default function GameResultModal({
             </div>
             <div className="bg-neutral-100 px-3 py-1 rounded-full flex items-center">
               {/* 트로피 아이콘 */}
-              {winner === "black" ? (
-                <TrophyIcon className="size-4 mr-2 text-yellow-500" />
-              ) : null}
-              <span className="text-sm font-medium text-red-500">-15</span>
+              {winColor === "black" ? (
+                <>
+                  <TrophyIcon className="size-4 mr-2 text-yellow-500" />
+                  <span className="text-sm font-medium">+{eloResult}</span>
+                </>
+              ) : (
+                <span className="text-sm font-medium text-red-500">
+                  -{eloResult}
+                </span>
+              )}
             </div>
           </div>
         </div>
