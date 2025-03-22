@@ -187,7 +187,8 @@ app.prepare().then(() => {
         r.players.some((p) => p.username === username)
       );
       if (!room) return callback({ error: "Room not found" });
-      room.game.surrender();
+      const player = room.players.find((p) => p.username === username);
+      room.game.surrender(player.color);
       const winner = room.players.find(
         (p) => p.color === room.game.getWinner()
       );

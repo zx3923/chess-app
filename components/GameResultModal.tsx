@@ -5,7 +5,7 @@ import { ClockIcon, TrophyIcon } from "@heroicons/react/24/outline";
 interface GameResultModalProps {
   winColor: string;
   reason: string;
-  gameTime: number;
+  gameTime: string;
   rating: number | undefined;
   opponentRating: number | undefined;
   userColor: string;

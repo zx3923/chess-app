@@ -14,6 +14,7 @@ import { msToSec, timeString } from "@/lib/timer";
 import { useUser } from "@/lib/context/UserContext";
 import { useMenu } from "@/lib/context/MenuContext";
 import { redirect } from "next/navigation";
+import Rating from "./rating";
 // import { useChess } from "@/lib/context/ChessContext";
 
 interface Player {
@@ -30,6 +31,21 @@ interface Room {
   fen: string;
 }
 
+interface GameOverData {
+  eloResult: number;
+  gameMode: "blitz" | "bullet" | "rapid";
+  gameTime: string;
+  reason: string;
+  winColor: "white" | "black";
+  winner: {
+    color: "white" | "black";
+    id: number;
+    rating: number;
+    socketId: string;
+    username: string;
+  };
+}
+
 type Arrow = [Square, Square, (string | undefined)?];
 type GameType = "playerVsPlayer" | "playerVsComputer" | null;
 
@@ -42,7 +58,7 @@ function ChessGame() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [winColor, setWinColor] = useState("");
   const [reason, setReason] = useState("");
-  const [gameTime, setGameTime] = useState(0);
+  const [gameTime, setGameTime] = useState("0");
   const [userColor, setUserColor] = useState<string>("white");
   const [eloResult, setEloResult] = useState(0);
   const [opponent, setOpponent] = useState<Player | undefined>();
@@ -68,15 +84,18 @@ function ChessGame() {
 
   // 새로고침
   useEffect(() => {
-    console.log(1);
     socket.emit(
       "requestGameState",
       { username: user.username, socketId: socket.id },
       (roomInfo: any, player: any, opponent: any) => {
         if (roomInfo.error) {
-          return;
+          redirect("/play/online/new");
         }
-        console.log(2);
+        if (roomInfo.game.isGameOver) {
+          socket.emit("deleteRoom", user.username);
+          redirect("/play/online/new");
+        }
+        console.log(roomInfo);
         setRoom(roomInfo);
         setOpponent(opponent);
         setUserColor(player.color);
@@ -105,6 +124,7 @@ function ChessGame() {
   useEffect(() => {
     if (socket) {
       socket.on("gameStart", (data) => {
+        console.log(data);
         setRoom(data);
         const player = data.players.find(
           (p: any) => p.username === user.username
@@ -113,6 +133,7 @@ function ChessGame() {
         const opponent = data.players.find(
           (p: any) => p.username !== user.username
         );
+        console.log(opponent);
         setOpponent(opponent);
         setIsLoading(false);
         startTimer(data);
@@ -129,9 +150,7 @@ function ChessGame() {
   // 게임종료
   useEffect(() => {
     if (socket) {
-      socket.on("gameOver", (data) => {
-        console.log(1);
-        console.log(data);
+      socket.on("gameOver", (data: GameOverData) => {
         setWinColor(data.winColor);
         setReason(data.reason);
         setGameTime(data.gameTime);
@@ -143,7 +162,32 @@ function ChessGame() {
         } else {
           playSound("#");
         }
-        // updateRating(eloResult, win, gameMode);
+        if (win) {
+          setOpponent((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  rating: prev.rating - data.eloResult,
+                }
+              : prev
+          );
+        } else {
+          setOpponent((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  rating: prev.rating + data.eloResult,
+                }
+              : prev
+          );
+        }
+        updateRating(data.eloResult, win, data.gameMode);
+        setUser((prev) => ({
+          ...prev,
+          [`${data.gameMode}Rating`]:
+            (prev[`${data.gameMode}Rating`] || 0) +
+            (win ? data.eloResult : -data.eloResult),
+        }));
       });
     }
     return () => {
@@ -536,7 +580,7 @@ function ChessGame() {
         {opponent ? (
           <div className="flex text-sm gap-1">
             <span>{opponent.username}</span>
-            <span className="text-gray-500">({opponent.rating})</span>
+            <Rating rating={opponent.rating} />
           </div>
         ) : (
           <>상대</>
@@ -586,9 +630,12 @@ function ChessGame() {
       <div className="text-white flex justify-between items-center w-full mt-4">
         <div className="flex text-sm gap-1">
           <span>{user.username}</span>
-          <span className="text-gray-500">
-            {room ? <>({user[`${room!.gameMode}Rating`]})</> : null}
-          </span>
+          {/* <span className="text-gray-500"> */}
+          {/* {room ? <>({user[`${room!.gameMode}Rating`]})</> : null} */}
+          {/* </span> */}
+          {room ? (
+            <Rating rating={user[`${room!.gameMode}Rating`] ?? 0} />
+          ) : null}
         </div>
         {gameType === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-white p-2 px-4 rounded text-black">
