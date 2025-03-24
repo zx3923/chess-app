@@ -3,7 +3,7 @@
 import { Square } from "chess.js";
 import { socket } from "@/lib/socket";
 import { Chessboard } from "react-chessboard";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, use } from "react";
 import { ClockIcon } from "@heroicons/react/24/outline";
 
 import "./chess-board.css";
@@ -13,7 +13,7 @@ import GameResultModal from "./GameResultModal";
 import { msToSec, timeString } from "@/lib/timer";
 import { useUser } from "@/lib/context/UserContext";
 import { useMenu } from "@/lib/context/MenuContext";
-import { redirect } from "next/navigation";
+import { redirect, useSearchParams } from "next/navigation";
 import Rating from "./rating";
 // import { useChess } from "@/lib/context/ChessContext";
 
@@ -32,6 +32,7 @@ interface Room {
 }
 
 interface GameOverData {
+  roomId: string;
   eloResult: number;
   gameMode: "blitz" | "bullet" | "rapid";
   gameTime: string;
@@ -54,6 +55,8 @@ function ChessGame() {
   const { isMenuOpen } = useMenu();
   const [isLoading, setIsLoading] = useState(true);
   // const { game, setGame } = useChess();
+  const searchParams = useSearchParams();
+  const pathGameType = searchParams.get("pathGameType");
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [winColor, setWinColor] = useState("");
@@ -88,56 +91,103 @@ function ChessGame() {
       "requestGameState",
       { username: user.username, socketId: socket.id },
       (roomInfo: any, player: any, opponent: any) => {
-        if (roomInfo.error) {
-          redirect("/play/online/new");
+        if (pathGameType === "computer") {
+          console.log(1);
+          if (roomInfo.error) {
+            console.log(2);
+            return;
+          }
+          console.log(3);
+          setGameType("playerVsComputer");
+          setUserColor(player.color);
+          setRoom(roomInfo);
+          if (roomInfo.fen) {
+            console.log(roomInfo.fen);
+            setFen(roomInfo.fen);
+            setPrevFen(roomInfo.fen);
+          }
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 500);
+        } else {
+          if (roomInfo.error) {
+            redirect("/play/online/new");
+          }
+          if (roomInfo.game.isGameOver) {
+            socket.emit("deleteRoom", user.username);
+            redirect("/play/online/new");
+          }
+          console.log(roomInfo);
+          setRoom(roomInfo);
+          setOpponent(opponent);
+          setUserColor(player.color);
+          if (roomInfo.fen) {
+            setFen(roomInfo.fen);
+            setPrevFen(roomInfo.fen);
+          }
+          startTimer(roomInfo);
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 500);
+          redirect(`/play/online/new/${roomInfo.roomId}`);
         }
-        if (roomInfo.game.isGameOver) {
-          socket.emit("deleteRoom", user.username);
-          redirect("/play/online/new");
-        }
-        console.log(roomInfo);
-        setRoom(roomInfo);
-        setOpponent(opponent);
-        setUserColor(player.color);
-        if (roomInfo.fen) {
-          setFen(roomInfo.fen);
-          setPrevFen(roomInfo.fen);
-        }
-        // setGame(
-        //   "playerVsPlayer",
-        //   player.color,
-        //   roomInfo.timers[player.color].overallTime
-        // );
-        // game.setRoomId(roomInfo.roomId);
-        // game.setIsGameStarted(true);
-        // setFen(roomInfo.fen);
-        startTimer(roomInfo);
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 500);
-        redirect(`/play/online/new/${roomInfo.roomId}`);
       }
     );
   }, [user.username]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("colorChange", (color) => {
+        setUserColor(color);
+      });
+      socket.on("barChange", (state) => {
+        setShowWinBar(state);
+      });
+      socket.on("bestMoveChange", (state) => {
+        setShowBestMoves(state);
+      });
+    }
+
+    return () => {
+      socket.off("colorChange");
+      socket.off("barChange");
+      socket.off("bestMoveChange");
+    };
+  }, [socket]);
+
+  // useEffect(() => {
+  //   if (socket) {
+  //   }
+
+  //   return () => {};
+  // }, [socket]);
 
   // 게임시작
   useEffect(() => {
     if (socket) {
       socket.on("gameStart", (data) => {
-        console.log(data);
-        setRoom(data);
-        const player = data.players.find(
-          (p: any) => p.username === user.username
-        );
-        setUserColor(player.color);
-        const opponent = data.players.find(
-          (p: any) => p.username !== user.username
-        );
-        console.log(opponent);
-        setOpponent(opponent);
-        setIsLoading(false);
-        startTimer(data);
-        playSound("start");
+        if (pathGameType === "computer") {
+          console.log(data);
+          setRoom(data);
+          setUserColor(data.players[0].color);
+          setIsLoading(false);
+          playSound("start");
+        } else {
+          console.log(data);
+          setRoom(data);
+          const player = data.players.find(
+            (p: any) => p.username === user.username
+          );
+          setUserColor(player.color);
+          const opponent = data.players.find(
+            (p: any) => p.username !== user.username
+          );
+          console.log(opponent);
+          setOpponent(opponent);
+          setIsLoading(false);
+          startTimer(data);
+          playSound("start");
+        }
       });
     }
     return () => {
@@ -151,43 +201,53 @@ function ChessGame() {
   useEffect(() => {
     if (socket) {
       socket.on("gameOver", (data: GameOverData) => {
-        setWinColor(data.winColor);
-        setReason(data.reason);
-        setGameTime(data.gameTime);
-        setCloseModal(true);
-        setEloResult(data.eloResult);
-        const win = data.winner.id === user.id;
         if (data.reason === "timeOut" || data.reason === "surrender") {
           playSound("gameover");
         } else {
           playSound("#");
         }
-        if (win) {
-          setOpponent((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  rating: prev.rating - data.eloResult,
-                }
-              : prev
-          );
+        if (pathGameType === "computer") {
+          console.log(data);
+          setWinColor(data.winColor);
+          setReason(data.reason);
+          setGameTime(data.gameTime);
+          setCloseModal(true);
+          socket.emit("computerRoomDelete", data.roomId);
         } else {
-          setOpponent((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  rating: prev.rating + data.eloResult,
-                }
-              : prev
-          );
+          setWinColor(data.winColor);
+          setReason(data.reason);
+          setGameTime(data.gameTime);
+          setCloseModal(true);
+          setEloResult(data.eloResult);
+          const win = data.winner.id === user.id;
+
+          if (win) {
+            setOpponent((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    rating: prev.rating - data.eloResult,
+                  }
+                : prev
+            );
+          } else {
+            setOpponent((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    rating: prev.rating + data.eloResult,
+                  }
+                : prev
+            );
+          }
+          updateRating(data.eloResult, win, data.gameMode);
+          setUser((prev) => ({
+            ...prev,
+            [`${data.gameMode}Rating`]:
+              (prev[`${data.gameMode}Rating`] || 0) +
+              (win ? data.eloResult : -data.eloResult),
+          }));
         }
-        updateRating(data.eloResult, win, data.gameMode);
-        setUser((prev) => ({
-          ...prev,
-          [`${data.gameMode}Rating`]:
-            (prev[`${data.gameMode}Rating`] || 0) +
-            (win ? data.eloResult : -data.eloResult),
-        }));
       });
     }
     return () => {
@@ -200,9 +260,9 @@ function ChessGame() {
   // 움직임
   useEffect(() => {
     if (socket) {
-      socket.on("move", (board, move) => {
-        setFen(board);
-        setPrevFen(board);
+      socket.on("move", (fen, move) => {
+        setFen(fen);
+        setPrevFen(fen);
         if (move.captured) {
           playSound(move.san, true);
         } else {
@@ -215,6 +275,22 @@ function ChessGame() {
         socket.off("move");
       }
     };
+  }, [socket]);
+
+  // 컴퓨터 움직임
+  useEffect(() => {
+    if (socket) {
+      socket.on("computerMove", (fen, move) => {
+        setFen(fen);
+        if (move.captured) {
+          playSound(move.san, true);
+        } else {
+          playSound(move.san);
+        }
+      });
+    }
+
+    return () => {};
   }, [socket]);
 
   // 업데이트 보드
@@ -413,8 +489,17 @@ function ChessGame() {
       roomId,
       showWinBar,
       userColor,
-      (isValidMove: boolean) => {
+      (isValidMove: boolean, fen: any, move: any) => {
         if (isValidMove) {
+          if (pathGameType === "computer") {
+            setFen(fen);
+            if (move.captured) {
+              playSound(move.san, true);
+            } else {
+              playSound(move.san);
+            }
+            socket.emit("computerMove", roomId);
+          }
           return true;
         } else {
           setFen(prevFen);
@@ -577,13 +662,19 @@ function ChessGame() {
       }`}
     >
       <div className="text-white flex justify-between items-center w-full mb-4">
-        {opponent ? (
-          <div className="flex text-sm gap-1">
-            <span>{opponent.username}</span>
-            <Rating rating={opponent.rating} />
-          </div>
+        {gameType === "playerVsComputer" ? (
+          <div className="text-sm">컴퓨터</div>
         ) : (
-          <>상대</>
+          <>
+            {opponent ? (
+              <div className="flex text-sm gap-1">
+                <span>{opponent.username}</span>
+                <Rating rating={opponent.rating} />
+              </div>
+            ) : (
+              <div className="text-sm">상대</div>
+            )}
+          </>
         )}
         {gameType === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-neutral-700 p-2 px-4 rounded">
@@ -598,7 +689,9 @@ function ChessGame() {
       </div>
       <div className="w-80 sm:w-[450px] md:w-[620px]">
         {isLoading ? (
-          <Chessboard />
+          <Chessboard
+            boardOrientation={userColor === "white" ? "white" : "black"}
+          />
         ) : (
           <Chessboard
             position={fen}
@@ -630,9 +723,6 @@ function ChessGame() {
       <div className="text-white flex justify-between items-center w-full mt-4">
         <div className="flex text-sm gap-1">
           <span>{user.username}</span>
-          {/* <span className="text-gray-500"> */}
-          {/* {room ? <>({user[`${room!.gameMode}Rating`]})</> : null} */}
-          {/* </span> */}
           {room ? (
             <Rating rating={user[`${room!.gameMode}Rating`] ?? 0} />
           ) : null}

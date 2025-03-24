@@ -1,5 +1,6 @@
 "use client";
 
+import { socket } from "@/lib/socket";
 // import { useChess } from "@/lib/context/ChessContext";
 import { useState } from "react";
 
@@ -29,7 +30,9 @@ export default function ToggleSwitch({
     onToggle?.(newState);
     if (label === "평가 막대") {
       // game.setShowWinBar(newState);
+      socket.emit("barChange", newState);
     } else if (label === "수 보이기") {
+      socket.emit("bestMoveChange", newState);
       // game.setShowBestMoves(newState);
     }
   };

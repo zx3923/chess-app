@@ -51,7 +51,10 @@ export default function Home() {
             <span>친구와 플레이</span>
           </Link>
           <Link
-            href="/play/computer"
+            href={{
+              pathname: "/play/computer",
+              query: { pathGameType: "computer" },
+            }}
             className="flex justify-start items-center gap-2 p-2 border border-neutral-700 py-4 hover:bg-neutral-700 rounded"
           >
             <ComputerDesktopIcon className="size-7" />

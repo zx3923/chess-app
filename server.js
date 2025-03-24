@@ -151,6 +151,62 @@ app.prepare().then(() => {
       }
     });
 
+    // 컴퓨터 게임
+    socket.on(
+      "playComputer",
+      async ({ user, color, winBar, bestMove }, callback) => {
+        const roomId = uuidv4();
+        const player = {
+          socketId: socket.id,
+          id: user.id,
+          username: user.username,
+          color: color,
+        };
+        const computer = {
+          color: color === "white" ? "black" : "white",
+        };
+
+        rooms.set(roomId, {
+          roomId,
+          players: [player, computer],
+          currentTurn: "white",
+          fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          game: new Game("playerVsComputer", 0, player, computer),
+        });
+        const room = rooms.get(roomId);
+
+        room.game.play();
+        socket.emit("gameStart", room);
+        if (color === "black") {
+          const move = await room.game.makeComputerMove();
+          room.fen = room.game.getCurrentBoard();
+          socket.emit("computerMove", room.game.getCurrentBoard(), move);
+        }
+        callback({ roomId });
+      }
+    );
+
+    socket.on("computerMove", async (roomId) => {
+      const room = rooms.get(roomId);
+      if (!room) {
+        callback(false);
+        return;
+      } else {
+        const move = await room.game.makeComputerMove();
+        room.fen = room.game.getCurrentBoard();
+        socket.emit("computerMove", room.game.getCurrentBoard(), move);
+        if (room.game.getIsGameOver()) {
+          socket.emit("gameOver", {
+            winColor: room.game.getWinner(),
+            gameTime: room.game.getGameDuration(),
+            reason: "gameOver",
+            roomId: room.roomId,
+          });
+          socket.emit("endGame");
+        }
+      }
+    });
+
     // 재 요청
     socket.on("requestGameState", ({ username, socketId }, callback) => {
       const room = [...rooms.values()].find((r) =>
@@ -187,20 +243,32 @@ app.prepare().then(() => {
         r.players.some((p) => p.username === username)
       );
       if (!room) return callback({ error: "Room not found" });
-      const player = room.players.find((p) => p.username === username);
-      room.game.surrender(player.color);
-      const winner = room.players.find(
-        (p) => p.color === room.game.getWinner()
-      );
-      io.in(room.roomId).emit("gameOver", {
-        winner,
-        winColor: room.game.getWinner(),
-        reason: "surrender",
-        gameTime: room.game.getGameDuration(),
-        eloResult: room.game.getEloResult(),
-        gameMode: room.gameMode,
-      });
-      io.in(room.roomId).emit("endGame");
+      if (room.game.getGameType() === "playerVsComputer") {
+        console.log(room.game.player1.color);
+        room.game.surrender(room.game.player1.color);
+        socket.emit("gameOver", {
+          winColor: room.game.getWinner(),
+          gameTime: room.game.getGameDuration(),
+          reason: "surrender",
+          roomId: room.roomId,
+        });
+        socket.emit("endGame");
+      } else {
+        const player = room.players.find((p) => p.username === username);
+        room.game.surrender(player.color);
+        const winner = room.players.find(
+          (p) => p.color === room.game.getWinner()
+        );
+        io.in(room.roomId).emit("gameOver", {
+          winner,
+          winColor: room.game.getWinner(),
+          reason: "surrender",
+          gameTime: room.game.getGameDuration(),
+          eloResult: room.game.getEloResult(),
+          gameMode: room.gameMode,
+        });
+        io.in(room.roomId).emit("endGame");
+      }
 
       // rooms.delete(room.roomId);
     });
@@ -220,25 +288,30 @@ app.prepare().then(() => {
         if (room.game.getGameType() === "playerVsComputer") {
           console.log("vsComputer");
           if (room.game.makeMove(moveData)) {
+            room.fen = room.game.getCurrentBoard();
             // room.game.increaseMoveIndex();
             if (showWinBar) {
               room.game.setWinChanceAndBestMove();
               // 소켓으로 값보내주기 ?
             }
             // 소켓으로 보드값 보내주기 ?
-            (async () => {
-              const computerMove = await room.game.makeComakeComputerMove();
-              // room.game.increaseMoveIndex();
-              if (showWinBar) {
-                //소켓으로 값보내주기
-              }
-              // 보드 보내주기
-            })();
+            // (async () => {
+            //   const computerMove = await room.game.makeComakeComputerMove();
+            //   // room.game.increaseMoveIndex();
+            //   if (showWinBar) {
+            //     //소켓으로 값보내주기
+            //   }
+            //   // 보드 보내주기
+            // })();
           } else {
             callback(false);
             return;
           }
-          callback(true);
+          callback(
+            true,
+            room.game.getCurrentBoard(),
+            room.game.getCurrentMove()
+          );
           return;
         } else {
           console.log("vsPlayer");
@@ -281,6 +354,19 @@ app.prepare().then(() => {
           }
         }
       }
+    });
+
+    // 색 변경
+    socket.on("colorChange", (color) => {
+      socket.emit("colorChange", color);
+    });
+
+    socket.on("barChange", (state) => {
+      socket.emit("barChange", state);
+    });
+
+    socket.on("bestMoveChange", (state) => {
+      socket.emit("bestMoveChange", state);
     });
 
     // 피스 클릭
@@ -410,6 +496,12 @@ app.prepare().then(() => {
           return;
         }
       }
+    });
+
+    socket.on("computerRoomDelete", (roomId) => {
+      console.log(roomId);
+      rooms.delete(roomId);
+      console.log(rooms);
     });
 
     socket.on("disconnect", () => {
