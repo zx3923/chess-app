@@ -1,24 +1,24 @@
 export default class Timer {
-  isRunning = false;
-  startTime = null;
-  overallTime = 0;
-  maxTime = 0;
+  isRunning: boolean = false;
+  startTime: number | null = null;
+  overallTime: number = 0;
+  maxTime: number = 0;
 
-  gameStartTime = null;
-  gameEndTime = null;
+  gameStartTime: number | null = null;
+  gameEndTime: number | null = null;
 
-  constructor(starting) {
+  constructor(starting: number) {
     this.overallTime = starting;
     this.maxTime = starting;
   }
 
   // 마지막 startTime 이후 경과 시간 반환
-  getElapsedTimeSinceLastStart() {
+  getElapsedTimeSinceLastStart(): number {
     if (!this.startTime) return 0;
     return Date.now() - this.startTime;
   }
 
-  start() {
+  start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
     this.startTime = Date.now();
@@ -28,21 +28,21 @@ export default class Timer {
     }
   }
 
-  stop() {
+  stop(): void {
     if (!this.isRunning) return;
     this.isRunning = false;
     this.overallTime -= this.getElapsedTimeSinceLastStart();
   }
 
-  endGame() {
+  endGame(): void {
     this.gameEndTime = Date.now();
   }
 
-  setTime(newTime) {
+  setTime(newTime: number | string): void {
     this.overallTime = +newTime;
   }
 
-  reset() {
+  reset(): void {
     this.overallTime = this.maxTime;
     if (this.isRunning) {
       this.startTime = Date.now();
@@ -53,7 +53,7 @@ export default class Timer {
     this.gameEndTime = 0;
   }
 
-  getTime() {
+  getTime(): number {
     // startTime이 null인 상태 => 처음 한 번도 start() 안 했거나 reset된 직후 정지 상태
     if (!this.startTime) return this.overallTime;
 
@@ -64,20 +64,20 @@ export default class Timer {
     return this.overallTime;
   }
 
-  getTotalGameTime() {
+  getTotalGameTime(): number {
     if (!this.gameStartTime || !this.gameEndTime) return 0;
     return this.gameEndTime - this.gameStartTime;
   }
 }
 
-export function msToSec(ms) {
+export function msToSec(ms: number): string {
   return (ms / 1000).toFixed(2);
 }
 
-export function secToMs(sec) {
+export function secToMs(sec: number): number {
   return sec * 1000;
 }
-export function timeString(seconds) {
+export function timeString(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds - hours * 3600) / 60);
   const secondsLeft = seconds - hours * 3600 - minutes * 60;

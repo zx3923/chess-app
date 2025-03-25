@@ -7,12 +7,12 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/solid";
-import { socket } from "@/lib/socket";
-import { redirect } from "next/navigation";
-import { useUser } from "@/lib/context/UserContext";
+
+import { useChess } from "@/lib/context/ChessContext";
 
 export default function NewPage() {
-  const { user } = useUser();
+  const { game } = useChess();
+  // const [isStarted, setIsStarted] = useState(true);
   const [isGameOver, setIsGameOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedMove, setSelectedMove] = useState<number>(-1);
@@ -21,7 +21,10 @@ export default function NewPage() {
   >([]);
 
   const [history, setHistory] = useState<Move[]>([]);
-  const [lastMoveIndex, setLastMoveIndex] = useState(0);
+
+  // useEffect(() => {
+  //   game.play();
+  // }, []);
 
   // 스크롤 액션
   useEffect(() => {
@@ -31,64 +34,60 @@ export default function NewPage() {
   }, [notation]);
 
   useEffect(() => {
-    if (socket) {
-      socket.on("updateNotation", (notation, history, moveIndex) => {
-        setNotation(notation);
-        setHistory(history);
-        setSelectedMove(moveIndex);
-        setLastMoveIndex(moveIndex);
-      });
-    }
-    return () => {
-      if (socket) {
-        socket.off("updateNotation");
-      }
+    const handleGameOver = () => {
+      setIsGameOver(true);
     };
-  }, [socket]);
 
-  useEffect(() => {
-    if (socket) {
-      socket.on("endGame", () => {
-        setIsGameOver(true);
-      });
-    }
-    return () => {
-      if (socket) {
-        socket.off("endGame");
-      }
-    };
-  }, [socket]);
-
-  // 새로고침
-  useEffect(() => {
-    if (socket) {
-      socket.emit(
-        "requestNotation",
-        { username: user.username },
-        (notation: any, history: any, moveIndex: any) => {
-          if (notation.error) {
-            return;
-          }
-          setNotation(notation);
-          setHistory(history);
-          setSelectedMove(moveIndex);
-          setLastMoveIndex(moveIndex);
+    const handleMove = (move: any, history: Move[]) => {
+      setNotation((prev) => {
+        if (move.color === "w") {
+          const movedata = {
+            moveNumber: prev.length + 1,
+            whiteMove: move.san,
+            blackMove: "",
+          };
+          return [...prev, movedata];
+        } else {
+          const updated = [...prev];
+          updated[updated.length - 1].blackMove = move.san;
+          return updated;
         }
-      );
-    }
-  }, [socket]);
+      });
+      setHistory(history);
+      setSelectedMove((prev) => prev + 1);
+    };
 
-  const handleNewGame = () => {
-    socket.emit("deleteRoom", user.username);
-    redirect("/play/online/new");
+    game.on("gameOver", handleGameOver);
+    game.on("move", handleMove);
+
+    return () => {
+      game.off("gameOver", handleGameOver);
+      game.off("move", handleMove);
+    };
+  }, [game]);
+
+  // useEffect(() => {
+  //   game.setGameMode("playerVsPlayer");
+  // }, []);
+
+  // const hnandleStartBtn = () => {
+  //   game.play();
+  //   setIsStarted(true);
+  // };
+
+  const handleRestartBtn = () => {
+    game.restartGame();
+    setIsGameOver(false);
+    setNotation([]);
   };
 
   const handleSurrender = () => {
-    socket.emit("surrender", user.username);
+    game.surrender();
   };
 
   const handlePrevMove = () => {
-    if (selectedMove <= 0) return;
+    if (selectedMove === -1 || selectedMove === 0) return;
+    console.log(selectedMove);
     const prevMove = selectedMove - 1;
     setSelectedMove(prevMove);
     handleMoveClick(
@@ -98,7 +97,8 @@ export default function NewPage() {
   };
 
   const handleNextMove = () => {
-    if (selectedMove >= lastMoveIndex) return;
+    if (selectedMove === -1 || selectedMove >= notation.length * 2 - 1) return;
+    console.log(selectedMove);
     const nextMove = selectedMove + 1;
     setSelectedMove(nextMove);
     handleMoveClick(
@@ -110,10 +110,8 @@ export default function NewPage() {
   const handleMoveClick = (moveNumber: number, color: "white" | "black") => {
     const moveIndex = moveNumber * 2 + (color === "black" ? 1 : 0);
     setSelectedMove(moveIndex);
-    socket.emit(
-      "moveClick",
-      history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after,
-      user.username
+    game.setCurrentBoard(
+      history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after
     );
   };
 
@@ -203,9 +201,9 @@ export default function NewPage() {
         <>
           <button
             className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
-            onClick={handleNewGame}
+            onClick={handleRestartBtn}
           >
-            새 게임
+            재대결
           </button>
         </>
       ) : null}

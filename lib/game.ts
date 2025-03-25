@@ -1,17 +1,45 @@
-import Timer, { timeString } from "./timer.js";
+import Timer, { timeString } from "./timer";
 import { Chess } from "chess.js";
+import { Square } from "chess.js";
 // import { soundPlayer } from "./sound";
 import EventEmitter from "events";
 
+export type Player = "white" | "black";
+export type GameMode = "playerVsPlayer" | "playerVsComputer" | null;
+export type Arrow = [Square, Square, (string | undefined)?];
+
+interface Move {
+  from: string;
+  to: string;
+  promotion?: string;
+}
+
 class Game extends EventEmitter {
-  constructor(gameType, startingTime, player1, player2) {
+  private chess: Chess;
+  private userColor: Player;
+  private currentPlayer: Player;
+  private gameMode: GameMode;
+  private timers: { [key in Player]: Timer }; // 각 플레이어의 타이머
+  private isGameOver: boolean;
+  private isGameStarted: boolean;
+  private currentPiece: string;
+  private winner: string;
+  // private gameOverListeners: Callback[] = [];
+  private isSurrender: boolean;
+  private moveHistory: string[];
+  private gameDuration: Timer;
+  private showWinBar: boolean;
+  private showBestMoves: boolean;
+  private winChance: number;
+  private bestMove: Arrow[];
+  private roomId: string;
+
+  constructor(gameMode: GameMode, userColor: Player, startingTime: number) {
     super();
     this.chess = new Chess();
-    // this.userColor = userColor;
+    this.userColor = userColor;
     this.currentPlayer = "white";
-    this.player1 = player1;
-    this.player2 = player2;
-    this.gameType = gameType;
+    this.gameMode = gameMode;
     this.timers = {
       white: new Timer(startingTime),
       black: new Timer(startingTime),
@@ -28,25 +56,30 @@ class Game extends EventEmitter {
     this.winChance = 50;
     this.bestMove = [];
     this.roomId = "";
-    this.currentMove = "";
-    this.moveNumber = -1;
-    this.eloResult = 0;
-    this.notation = [];
   }
-  play() {
+
+  public play(): void {
     if (!this.isGameStarted) {
       // soundPlayer.start();
       this.isGameStarted = true;
       this.isGameOver = false;
       this.gameDuration.start();
-      // this.emit("gameStart");
-      if (this.getGameType() !== "playerVsComputer") {
+      this.emit("gameStart");
+      if (this.getGameMode() !== "playerVsComputer") {
         this.timers[this.currentPlayer].start();
+      } else if (this.getGameMode() === "playerVsComputer") {
+        if (this.getUserColor() === "black") {
+          (async () => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const computerMove = await this.makeComputerMove();
+          })();
+        }
       }
       console.log("Game started");
     }
   }
-  stop() {
+
+  public stop(): void {
     if (this.isGameStarted) {
       this.isGameStarted = false;
       this.timers.white.stop();
@@ -54,25 +87,24 @@ class Game extends EventEmitter {
       console.log("Game stopped");
     }
   }
-  surrender(color) {
+
+  public surrender(): void {
     this.isSurrender = true;
-    this.winner = color === "white" ? "black" : "white";
     this.handleGameOver();
   }
+
   // 체스 말 움직임
-  makeMove(move) {
+  public makeMove(move: Move): boolean {
     if (!this.isGameStarted || this.isGameOver) {
       return false;
     }
-    this.updateNotation(move);
-    if (this.gameType === "playerVsComputer") {
+    if (this.gameMode === "playerVsComputer") {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       try {
         const result = this.chess.move(move);
-        this.currentMove = result;
         if (result) {
           // soundPlayer.playMoveSound(result);
-          // this.emit("move", result, this.chess.history({ verbose: true }));
+          this.emit("move", result, this.chess.history({ verbose: true }));
           this.switchPlayer();
           if (this.chess.isGameOver()) {
             this.handleGameOver();
@@ -81,19 +113,18 @@ class Game extends EventEmitter {
         } else {
           return false;
         }
-      } catch (e) {
-        console.error(e);
+      } catch {
         return false;
       }
     } else {
       try {
         const result = this.chess.move(move);
-        this.currentMove = result;
         if (result) {
-          // this.emit("move", result, this.chess.history({ verbose: true }));
+          this.emit("move", result, this.chess.history({ verbose: true }));
           this.timers[this.currentPlayer].stop(); // 현재 플레이어의 타이머 정지
           this.switchPlayer();
           this.timers[this.currentPlayer].start(); // 다음 플레이어의 타이머 시작
+
           if (this.chess.isGameOver()) {
             this.handleGameOver();
             if (this.chess.isCheckmate()) {
@@ -118,10 +149,12 @@ class Game extends EventEmitter {
       }
     }
   }
+
   // 컴퓨터 대결 시 컴퓨터 움직임
-  async makeComputerMove() {
-    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    await sleep(1300);
+  public async makeComputerMove(): Promise<any> {
+    const sleep = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+    await sleep(2000);
     const data = await postChessApi({
       fen: this.chess.fen(),
       depth: 1,
@@ -129,10 +162,9 @@ class Game extends EventEmitter {
       searchmoves: "",
     });
     const move = this.chess.move({ from: data.from, to: data.to });
-    this.updateNotation(move);
     if (move) {
-      // this.emit("computerMove", move);
-      // this.emit("move", move, this.chess.history({ verbose: true }));
+      this.emit("computerMove", move);
+      this.emit("move", move, this.chess.history({ verbose: true }));
       this.switchPlayer();
     }
     if (this.showWinBar) {
@@ -141,98 +173,52 @@ class Game extends EventEmitter {
     if (this.showBestMoves) {
       // this.bestMove = [[data.from, data.to, "#9fcf38"]];
       // await this.setWinChanceAndBestMove();
-      // this.emit("bestMove");
+      this.emit("bestMove");
     }
     if (this.chess.isGameOver()) {
       this.handleGameOver();
     }
-    return data;
+    return move;
   }
+
   // 게임종료 핸들러
-  handleGameOver() {
+  public handleGameOver(): void {
     this.isGameOver = true;
     this.isGameStarted = false;
     this.gameDuration.endGame();
     this.gameDuration.stop();
-    this.stop();
+    this.stop(); // Stop the game when it's over
     if (this.isSurrender) {
-      // this.winner = this.currentPlayer === "white" ? "black" : "white";
-      if (this.winner === this.player1.color) {
-        this.eloResult = this.calculateEloChange(
-          this.player1.rating,
-          this.player2.rating
-        );
-      } else {
-        this.eloResult = this.calculateEloChange(
-          this.player2.rating,
-          this.player1.rating
-        );
-      }
+      this.winner = this.currentPlayer === "white" ? "black" : "white";
+      // soundPlayer.gameover();
     } else {
       if (this.chess.isCheckmate()) {
-        console.log("player", this.player1);
         console.log(
           `Checkmate! Winner: ${
             this.currentPlayer === "white" ? "black" : "white"
           }`
         );
         this.winner = this.currentPlayer === "white" ? "black" : "white";
-        if (this.winner === this.player1.color) {
-          this.eloResult = this.calculateEloChange(
-            this.player1.rating,
-            this.player2.rating
-          );
-        } else {
-          this.eloResult = this.calculateEloChange(
-            this.player2.rating,
-            this.player1.rating
-          );
-        }
+        // soundPlayer.checkmate();
       } else if (this.chess.isDraw()) {
         this.winner = "draw";
         console.log("Draw");
         // soundPlayer.stalemate();
       } else {
-        // console.log("Game over");
-        if (this.checkTimeout() === this.player1.color) {
-          this.winner = this.player2.color;
-          this.eloResult = this.calculateEloChange(
-            this.player2.rating,
-            this.player1.rating
-          );
-        } else {
-          this.winner = this.player1.color;
-          this.eloResult = this.calculateEloChange(
-            this.player1.rating,
-            this.player2.rating
-          );
-        }
+        console.log("Game over");
       }
     }
-    // this.emit("gameOver", this.chess.isCheckmate());
+    this.emit("gameOver", this.chess.isCheckmate());
     // this.triggerGameOver();
   }
 
-  updateNotation(move) {
-    if (this.currentPlayer === "white") {
-      this.notation.push({
-        moveNumber: this.moveNumber + 1,
-        whiteMove: move.to,
-        blackMove: "",
-      });
-    } else {
-      if (this.notation.length > 0) {
-        this.notation[this.notation.length - 1].blackMove = move.to;
-      }
-    }
-    this.moveNumber++;
-  }
-
   // 칸 클릭 핸들러 - 경로 미리 보여주기 용
-  handleSquareClick(square) {
+  public handleSquareClick(
+    square: Square
+  ): Partial<Record<Square, { boxShadow: string }>> {
     // 현재 클릭한 칸에 있는 기물이 무엇인지 확인
     const moves = this.chess.moves({ square, verbose: true });
-    const newMoveSquares = {};
+    const newMoveSquares: Partial<Record<Square, { boxShadow: string }>> = {};
     moves.forEach((move) => {
       newMoveSquares[move.to] = {
         boxShadow: "inset 0 0 1px 6px rgba(255,255,255)",
@@ -240,13 +226,15 @@ class Game extends EventEmitter {
     });
     return newMoveSquares;
   }
+
   // 시간종료 확인
-  checkTimeout() {
+  public checkTimeout(): Player | null {
     if (this.timers.white.getTime() <= 0) return "white";
     if (this.timers.black.getTime() <= 0) return "black";
     return null;
   }
-  restartGame() {
+
+  public restartGame(): void {
     if (!this.isGameStarted) {
       // this.isSurrender = false;
       // this.currentPlayer = "white";
@@ -256,7 +244,8 @@ class Game extends EventEmitter {
     }
     this.play();
   }
-  gameInit() {
+
+  public gameInit(): void {
     this.isGameStarted = false;
     this.isSurrender = false;
     this.currentPlayer = "white";
@@ -264,135 +253,146 @@ class Game extends EventEmitter {
     this.gameDuration.reset();
   }
 
-  calculateEloChange(winnerRating, loserRating) {
-    const K = 20; // 기본 변동 계수 (K값) K값이 클수록 변동폭이 크다.
+  // // 게임종료 리스너
+  // public onGameOver(callback: Callback) {
+  //   this.gameOverListeners.push(callback);
+  // }
 
-    // 기대 승률 계산 (Elo 공식)
-    const expectedWinRate =
-      1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
+  // // 게임종료 리스너
+  // public offGameOver(callback: Callback) {
+  //   const index = this.gameOverListeners.indexOf(callback);
+  //   if (index !== -1) {
+  //     this.gameOverListeners.splice(index, 1);
+  //   }
+  // }
 
-    // 점수 변화량 계산
-    const ratingChange = Math.round(K * (1 - expectedWinRate));
+  // // 게임종료 리스너
+  // private triggerGameOver() {
+  //   this.gameOverListeners.forEach((callback) => callback());
+  // }
 
-    return ratingChange;
-  }
   // 턴 변경
-  switchPlayer() {
+  private switchPlayer(): void {
     this.currentPlayer = this.currentPlayer === "white" ? "black" : "white";
   }
-  getNotation() {
-    return this.notation;
-  }
-  increaseMoveNumber() {
-    this.moveNumber += 1;
-  }
+
   // 보드상황
-  getCurrentBoard() {
+  public getCurrentBoard(): string {
     return this.chess.fen();
   }
-  setCurrentBoard() {
-    // this.emit("reload", fen);
+
+  public setCurrentBoard(fen: string) {
+    this.emit("reload", fen);
   }
+
   // 현재 플레이어
-  getCurrentPlayer() {
+  public getCurrentPlayer(): Player {
     return this.currentPlayer;
   }
-  setTimers(timer) {
+
+  public setTimers(timer: number) {
     this.timers = {
       white: new Timer(timer),
       black: new Timer(timer),
     };
-    // this.emit("gameType");
+    this.emit("gameType");
   }
-  getTimers() {
+
+  public getTimers(): { white: number; black: number } {
     return {
       white: this.timers.white.getTime(),
       black: this.timers.black.getTime(),
     };
   }
-  getRoomId() {
+
+  public getRoomId(): string {
     return this.roomId;
   }
-  setRoomId(roomId) {
+
+  public setRoomId(roomId: string): void {
     this.roomId = roomId;
   }
-  getMoveNumber() {
-    return this.moveNumber;
-  }
-  setMoveNumber(num) {
-    this.moveNumber = num;
-  }
-  getCurrentMove() {
-    return this.currentMove;
-  }
-  getIsGameStarted() {
+
+  public getIsGameStarted(): boolean {
     return this.isGameStarted;
   }
-  setIsGameStarted(boolean) {
-    this.isGameStarted = boolean;
-  }
-  getIsGameOver() {
+
+  public getIsGameOver(): boolean {
     return this.isGameOver;
   }
-  setGameType(gameType) {
-    this.gameType = gameType;
+
+  public setGameMode(gameMode: GameMode) {
+    this.gameMode = gameMode;
   }
-  getGameType() {
-    return this.gameType;
+
+  public getGameMode(): GameMode {
+    return this.gameMode;
   }
-  getEloResult() {
-    return this.eloResult;
+
+  public setUserColor(userColor: Player) {
+    this.userColor = userColor;
   }
-  // setUserColor(userColor) {
-  //   this.userColor = userColor;
-  // }
-  // getUserColor() {
-  //   return this.userColor;
-  // }
-  setMoveHistory() {
+
+  public getUserColor(): Player {
+    return this.userColor;
+  }
+
+  public setMoveHistory(): void {
     this.moveHistory = this.chess.history();
   }
-  getMoveHistory() {
+
+  public getMoveHistory(): string[] {
     this.setMoveHistory();
     return this.moveHistory;
   }
-  getIsSurrender() {
+
+  public getIsSurrender(): boolean {
     return this.isSurrender;
   }
-  getGameDuration() {
+
+  public getGameDuration(): string {
     const totalGameTime = this.gameDuration.getTotalGameTime();
     const totalGameTimeString = timeString(totalGameTime / 1000);
     return totalGameTimeString;
   }
+
   // 현재 클릭 한 말
-  setCurrentPieceSquare(piece) {
+  public setCurrentPieceSquare(piece: string): void {
     this.currentPiece = piece;
   }
-  getCurrentPieceSquare() {
+
+  public getCurrentPieceSquare(): string {
     return this.currentPiece;
   }
-  getWinner() {
+
+  public getWinner(): string {
     return this.winner;
   }
-  getShowBestMoves() {
+
+  public getShowBestMoves(): boolean {
     return this.showBestMoves;
   }
-  setShowBestMoves(state) {
-    // this.emit("showBestMoves", state);
+
+  public setShowBestMoves(state: boolean): void {
+    this.emit("showBestMoves", state);
     this.showBestMoves = state;
   }
-  getShowWinBar() {
+
+  public getShowWinBar(): boolean {
     // this.emit("reload");
     return this.showWinBar;
   }
-  setShowWinBar(state) {
+
+  public setShowWinBar(state: boolean): void {
     this.showWinBar = state;
-    // this.emit("showWinBar");
+    this.emit("showWinBar");
   }
-  getWinChance() {
+
+  public getWinChance(): number {
     return this.winChance;
   }
-  async setWinChanceAndBestMove(winChance) {
+
+  public async setWinChanceAndBestMove(winChance?: string): Promise<void> {
     if (winChance) {
       this.winChance = Number(winChance);
     } else {
@@ -406,12 +406,27 @@ class Game extends EventEmitter {
       this.winChance = Number(data.winChance);
       this.bestMove = [[data.from, data.to, "#9fcf38"]];
     }
+    // const winChance = Number(data.winChance);
+    // this.winChance = winChance;
   }
-  getBestMove() {
+
+  // public async setBestMove() {
+  //   const data = await postChessApi({
+  //     fen: this.chess.fen(),
+  //     depth: 12,
+  //     variants: 5,
+  //   });
+  //   this.bestMove = [[data.from, data.to, "#9fcf38"]];
+  //   console.log(this.bestMove);
+  // }
+
+  public getBestMove(): Arrow[] {
     return this.bestMove;
   }
 }
+
 export default Game;
+
 // 체스엔진 테스트 api
 export async function postChessApi(data = {}) {
   const response = await fetch("https://chess-api.com/v1", {
