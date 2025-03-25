@@ -1,4 +1,3 @@
-// import { useChess } from "@/lib/context/ChessContext";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { ClockIcon, TrophyIcon } from "@heroicons/react/24/outline";
 
@@ -23,7 +22,6 @@ export default function GameResultModal({
   eloResult,
   onClose,
 }: GameResultModalProps) {
-  // const { game } = useChess();
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-neutral-800 rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">

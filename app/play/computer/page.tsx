@@ -9,16 +9,14 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/solid";
 
-// import { Player } from "@/lib/game";
 import ToggleSwitch from "@/components/toggle-switch";
 import { socket } from "@/lib/socket";
 import { useUser } from "@/lib/context/UserContext";
-// import { useChess } from "@/lib/context/ChessContext";
 
 export default function PlayComputer() {
-  // const { game, setGame } = useChess();
   const { user } = useUser();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
 
   const [selectColor, setSelectColor] = useState(0);
   const [color, setColor] = useState("white");
@@ -33,6 +31,18 @@ export default function PlayComputer() {
   >([]);
 
   const [history, setHistory] = useState<Move[]>([]);
+  const [lastMoveIndex, setLastMoveIndex] = useState(0);
+
+  //컴퓨터 모드에서는 나갈시 방 삭제
+  useEffect(() => {
+    setMounted(true);
+
+    return () => {
+      if (mounted) {
+        socket.emit("deleteRoom", user.username);
+      }
+    };
+  }, [mounted]);
 
   // 스크롤 액션
   useEffect(() => {
@@ -41,38 +51,21 @@ export default function PlayComputer() {
     }
   }, [notation]);
 
-  // useEffect(() => {
-  //   const handleGameOver = () => {
-  //     setIsGameOver(true);
-  //   };
-
-  //   const handleMove = (move: any, history: Move[]) => {
-  //     setNotation((prev) => {
-  //       if (move.color === "w") {
-  //         const movedata = {
-  //           moveNumber: prev.length + 1,
-  //           whiteMove: move.san,
-  //           blackMove: "",
-  //         };
-  //         return [...prev, movedata];
-  //       } else {
-  //         const updated = [...prev];
-  //         updated[updated.length - 1].blackMove = move.san;
-  //         return updated;
-  //       }
-  //     });
-  //     setHistory(history);
-  //     setSelectedMove((prev) => prev + 1);
-  //   };
-
-  //   game.on("gameOver", handleGameOver);
-  //   game.on("move", handleMove);
-
-  //   return () => {
-  //     game.off("gameOver", handleGameOver);
-  //     game.off("move", handleMove);
-  //   };
-  // }, [game]);
+  useEffect(() => {
+    if (socket) {
+      socket.on("updateNotation", (notation, history, moveIndex) => {
+        setNotation(notation);
+        setHistory(history);
+        setSelectedMove(moveIndex);
+        setLastMoveIndex(moveIndex);
+      });
+    }
+    return () => {
+      if (socket) {
+        socket.off("updateNotation");
+      }
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (socket) {
@@ -97,14 +90,11 @@ export default function PlayComputer() {
           if (notation.error) {
             return;
           }
-          console.log(notation);
-          console.log(history);
-          console.log(moveIndex);
           setNotation(notation);
           setHistory(history);
           setSelectedMove(moveIndex);
           setIsStarted(true);
-          // setLastMoveIndex(moveIndex);
+          setLastMoveIndex(moveIndex);
         }
       );
     }
@@ -123,8 +113,6 @@ export default function PlayComputer() {
       setSelectColor(2);
     }
     setColor(color);
-    // game.setUserColor(color);
-    // setGame("playerVsComputer", color);
     socket.emit("colorChange", color);
   };
 
@@ -153,8 +141,7 @@ export default function PlayComputer() {
   };
 
   const handlePrevMove = () => {
-    if (selectedMove === -1 || selectedMove === 0) return;
-    console.log(selectedMove);
+    if (selectedMove <= 0) return;
     const prevMove = selectedMove - 1;
     setSelectedMove(prevMove);
     handleMoveClick(
@@ -164,8 +151,7 @@ export default function PlayComputer() {
   };
 
   const handleNextMove = () => {
-    if (selectedMove === -1 || selectedMove >= notation.length * 2 - 1) return;
-    console.log(selectedMove);
+    if (selectedMove >= lastMoveIndex) return;
     const nextMove = selectedMove + 1;
     setSelectedMove(nextMove);
     handleMoveClick(
@@ -177,9 +163,11 @@ export default function PlayComputer() {
   const handleMoveClick = (moveNumber: number, color: "white" | "black") => {
     const moveIndex = moveNumber * 2 + (color === "black" ? 1 : 0);
     setSelectedMove(moveIndex);
-    // game.setCurrentBoard(
-    //   history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after
-    // );
+    socket.emit(
+      "moveClick",
+      history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after,
+      user.username
+    );
   };
 
   return (
