@@ -321,6 +321,7 @@ function ChessGame() {
     win: boolean,
     gameMode: string
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const response = await fetch("/api/updateRating", {
       method: "POST",
       headers: {

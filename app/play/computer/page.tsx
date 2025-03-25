@@ -116,6 +116,7 @@ export default function PlayComputer() {
     socket.emit("colorChange", color);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const hnandleStartBtn = () => {
     socket.emit(
       "playComputer",
