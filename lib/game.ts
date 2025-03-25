@@ -317,6 +317,10 @@ class Game extends EventEmitter {
     return this.isGameStarted;
   }
 
+  public setIsGameStarted(boolean: boolean): void {
+    this.isGameStarted = boolean;
+  }
+
   public getIsGameOver(): boolean {
     return this.isGameOver;
   }
