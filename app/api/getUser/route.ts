@@ -2,6 +2,7 @@ import db from "@/lib/db";
 import { getSession } from "@/lib/session/session";
 import { NextRequest } from "next/server";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(request: NextRequest) {
   const session = await getSession();
 

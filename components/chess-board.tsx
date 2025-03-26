@@ -305,6 +305,7 @@ function ChessGame() {
 
   // 컴퓨터가 움직인 후 소켓 이벤트를 보냄
   async function computerMove() {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const computerMove = await game.makeComputerMove(); // 비동기 완료 후 진행
     if (showWinBar) {
       setWinChance(game.getWinChance());
