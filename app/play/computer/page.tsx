@@ -12,10 +12,14 @@ import {
 import { Player } from "@/lib/game";
 import ToggleSwitch from "@/components/toggle-switch";
 import { useChess } from "@/lib/context/ChessContext";
+import { socket } from "@/lib/socket";
+import { useUser } from "@/lib/context/UserContext";
 
 export default function PlayComputer() {
   const { game, setGame } = useChess();
+  const { user } = useUser();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
 
   const [selectColor, setSelectColor] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
@@ -25,10 +29,49 @@ export default function PlayComputer() {
   const [showBestMoves, setShowBestMoves] = useState(false);
 
   const [notation, setNotation] = useState<
-    { moveNumber: number; whiteMove: string; blackMove: string }[]
+    { moveRow: number; whiteMove: string; blackMove: string }[]
   >([]);
 
   const [history, setHistory] = useState<Move[]>([]);
+
+  //컴퓨터 모드에서는 나갈시 방 삭제
+  useEffect(() => {
+    setMounted(true);
+
+    return () => {
+      if (mounted) {
+        socket.emit("deleteRoom", user.username);
+      }
+    };
+  }, [mounted]);
+
+  // 새로고침
+  useEffect(() => {
+    if (socket) {
+      socket.emit(
+        "requestNotation",
+        { username: user.username },
+        (notation: any, history: any, moveRow: any, moveIndex: any) => {
+          if (notation.error) {
+            return;
+          }
+          setNotation(notation);
+          game.setNotation(notation);
+          game.setMoveHistory(history);
+          game.setMoveRow(moveRow);
+          game.setMoveIndex(moveIndex);
+          setHistory(history);
+          setSelectedMove(moveIndex);
+          setIsStarted(true);
+        }
+      );
+    }
+    return () => {
+      if (socket) {
+        socket.off("requestNotation");
+      }
+    };
+  }, [socket]);
 
   // 스크롤 액션
   useEffect(() => {
@@ -43,21 +86,11 @@ export default function PlayComputer() {
     };
 
     const handleMove = (move: any, history: Move[]) => {
-      setNotation((prev) => {
-        if (move.color === "w") {
-          const movedata = {
-            moveNumber: prev.length + 1,
-            whiteMove: move.san,
-            blackMove: "",
-          };
-          return [...prev, movedata];
-        } else {
-          const updated = [...prev];
-          updated[updated.length - 1].blackMove = move.san;
-          return updated;
-        }
-      });
-      setHistory(history);
+      setNotation([...game.getNotation()]);
+      const newMove = history.pop();
+      if (newMove) {
+        setHistory((prev) => [...prev, newMove]);
+      }
       setSelectedMove((prev) => prev + 1);
     };
 
@@ -85,8 +118,29 @@ export default function PlayComputer() {
   };
 
   const hnandleStartBtn = () => {
-    game.play();
-    setIsStarted(true);
+    socket.emit(
+      "createComputerRoom",
+      user,
+      game.getUserColor(),
+      game.getGameType(),
+      game.getShowBestMoves(),
+      game.getShowWinBar(),
+      [],
+      game.getNotation(),
+      game.getIsGameOver(),
+      true,
+      game.getMoveRow(),
+      game.getMoveIndex(),
+      game.getBestMove(),
+      game.getWinChance(),
+      (response: any) => {
+        if (response.success) {
+          game.play();
+          setIsStarted(true);
+          game.setRoomId(response.roomId);
+        }
+      }
+    );
   };
 
   const handleRestartBtn = () => {
@@ -101,7 +155,6 @@ export default function PlayComputer() {
 
   const handlePrevMove = () => {
     if (selectedMove === -1 || selectedMove === 0) return;
-    console.log(selectedMove);
     const prevMove = selectedMove - 1;
     setSelectedMove(prevMove);
     handleMoveClick(
@@ -111,8 +164,9 @@ export default function PlayComputer() {
   };
 
   const handleNextMove = () => {
-    if (selectedMove === -1 || selectedMove >= notation.length * 2 - 1) return;
-    console.log(selectedMove);
+    const maxMoves =
+      notation.length * 2 - (notation.at(-1)?.blackMove === "" ? 1 : 0);
+    if (selectedMove < 0 || selectedMove + 1 >= maxMoves) return;
     const nextMove = selectedMove + 1;
     setSelectedMove(nextMove);
     handleMoveClick(
@@ -124,7 +178,13 @@ export default function PlayComputer() {
   const handleMoveClick = (moveNumber: number, color: "white" | "black") => {
     const moveIndex = moveNumber * 2 + (color === "black" ? 1 : 0);
     setSelectedMove(moveIndex);
-    game.setCurrentBoard(
+    if (
+      history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1] ===
+      undefined
+    ) {
+      return;
+    }
+    game.setReloadBoard(
       history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after
     );
   };
@@ -158,7 +218,7 @@ export default function PlayComputer() {
                         index % 2 === 1 ? "bg-neutral-900" : "bg-neutral-700"
                       }
                     >
-                      <td className="py-2 px-4">{move.moveNumber}.</td>
+                      <td className="py-2 px-4">{move.moveRow}.</td>
                       <td className="py-2 px-4">
                         <span
                           className={`hover:cursor-pointer ${

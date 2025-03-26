@@ -12,7 +12,6 @@ import { useChess } from "@/lib/context/ChessContext";
 
 export default function NewPage() {
   const { game } = useChess();
-  // const [isStarted, setIsStarted] = useState(true);
   const [isGameOver, setIsGameOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedMove, setSelectedMove] = useState<number>(-1);
@@ -21,10 +20,6 @@ export default function NewPage() {
   >([]);
 
   const [history, setHistory] = useState<Move[]>([]);
-
-  // useEffect(() => {
-  //   game.play();
-  // }, []);
 
   // 스크롤 액션
   useEffect(() => {
@@ -66,15 +61,6 @@ export default function NewPage() {
     };
   }, [game]);
 
-  // useEffect(() => {
-  //   game.setGameMode("playerVsPlayer");
-  // }, []);
-
-  // const hnandleStartBtn = () => {
-  //   game.play();
-  //   setIsStarted(true);
-  // };
-
   const handleRestartBtn = () => {
     game.restartGame();
     setIsGameOver(false);
@@ -110,7 +96,7 @@ export default function NewPage() {
   const handleMoveClick = (moveNumber: number, color: "white" | "black") => {
     const moveIndex = moveNumber * 2 + (color === "black" ? 1 : 0);
     setSelectedMove(moveIndex);
-    game.setCurrentBoard(
+    game.setReloadBoard(
       history[color === "white" ? moveNumber * 2 : moveNumber * 2 + 1].after
     );
   };

@@ -3,8 +3,6 @@ import { getSession } from "@/lib/session/session";
 import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
-  console.log("getUser api", request); // 로그 확인
-
   const session = await getSession();
 
   if (session?.id) {

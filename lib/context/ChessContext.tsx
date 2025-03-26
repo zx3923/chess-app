@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import Game, { GameMode, Player } from "../game";
+import Game, { GameType, Player } from "../game";
 
 interface ChessContextType {
   game: Game;
-  setGame: (gameMode?: GameMode, color?: Player, timer?: number) => void;
+  setGame: (gameType?: GameType, color?: Player, timer?: number) => void;
 }
 
 const ChessContext = createContext<ChessContextType | null>(null);
@@ -14,10 +14,10 @@ export const ChessProvider = ({ children }: { children: ReactNode }) => {
   );
 
   // setGame 호출 시 기존 게임 객체 상태를 변경
-  const setGame = (gameMode?: GameMode, color?: Player, timer?: number) => {
+  const setGame = (gameType?: GameType, color?: Player, timer?: number) => {
     setGameState((prevGame) => {
       // 기존 game 객체의 값을 변경만 하고 새로 객체를 생성하지 않음
-      if (gameMode) game.setGameMode(gameMode);
+      if (gameType) game.setGameType(gameType);
       if (color) game.setUserColor(color);
       if (timer !== undefined) game.setTimers(timer);
 

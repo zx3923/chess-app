@@ -21,6 +21,7 @@ export default function PlayNew() {
     socket.emit("joinQueue", {
       user: user,
       gameMode: selectedType,
+      gameType: game.getGameType(),
     });
   };
 
@@ -47,10 +48,9 @@ export default function PlayNew() {
     if (socket) {
       socket.on("matchFound", (data) => {
         handleRedirect(data.roomId);
-        // setGame("playerVsPlayer");
         console.log("match", data.color);
         game.gameInit();
-        game.setGameMode("playerVsPlayer");
+        game.setGameType("playerVsPlayer");
         game.setRoomId(data.roomId);
         game.setUserColor(data.color);
         game.play();

@@ -7,13 +7,15 @@ import { useState, useEffect, Suspense } from "react";
 import { ClockIcon } from "@heroicons/react/24/outline";
 
 import "./chess-board.css";
+import Rating from "./rating";
 import { playSound } from "@/lib/sound";
-import { Arrow, GameMode } from "@/lib/game";
+import { Arrow, GameType } from "@/lib/game";
 import GameResultModal from "./GameResultModal";
 import { msToSec, timeString } from "@/lib/timer";
 import { useUser } from "@/lib/context/UserContext";
 import { useMenu } from "@/lib/context/MenuContext";
 import { useChess } from "@/lib/context/ChessContext";
+import { useSearchParams } from "next/navigation";
 
 interface Player {
   id: string;
@@ -32,6 +34,9 @@ function ChessGame() {
   const { user } = useUser();
   const { isMenuOpen } = useMenu();
   const { game, setGame } = useChess();
+  const [isLoading, setIsLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const pathGameType = searchParams.get("pathGameType");
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [over, setOver] = useState(false);
@@ -40,7 +45,7 @@ function ChessGame() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [room, setRoom] = useState<Room>();
   const [fen, setFen] = useState(game.getCurrentBoard());
-  const [gameMode, setGameMode] = useState<GameMode>(null);
+  const [gameType, setGameType] = useState<GameType>(null);
   const [timers, setTimers] = useState({ white: 180000, black: 180000 });
 
   const [duration, setDuration] = useState(300);
@@ -49,36 +54,85 @@ function ChessGame() {
   const [bestMove, setBestMove] = useState<Arrow[]>([]);
   const [canMoveSquares, setCanMoveSquares] = useState({});
   const [showBestMoves, setShowBestMoves] = useState(false);
+  const [userColor, setUserColor] = useState("white");
 
   const whiteAdvantage = Math.min(Math.max(winChance, 0), 100); // 0~100 제한
   const blackAdvantage = 100 - whiteAdvantage;
 
-  // useEffect(() => {
-  //   socket.emit(
-  //     "requestGameState",
-  //     { username: user.username },
-  //     (roomInfo: any, player: any, opponent: any) => {
-  //       setRoom(roomInfo);
-  //       setOpponent(opponent);
-  //       setGame(
-  //         "playerVsPlayer",
-  //         player.color,
-  //         roomInfo.timers[player.color].overallTime
-  //       );
-  //       game.setRoomId(roomInfo.roomId);
-  //       game.setIsGameStarted(true);
-  //       setFen(roomInfo.fen);
-  //       startTimer();
-  //     }
-  //   );
-  // }, [user.username]);
+  useEffect(() => {
+    if (socket) {
+      socket.emit(
+        "requestGameState",
+        { username: user.username, socketId: socket.id },
+        (roomInfo: any, player: any, opponent: any) => {
+          if (pathGameType === "computer") {
+            setGameType("playerVsComputer");
+            if (roomInfo.error) {
+              return;
+            }
+            setUserColor(player.color);
+            game.setUserColor(player.color);
+            game.setCurrentPlayer(roomInfo.currentTurn);
+            setRoom(roomInfo);
+            game.setRoomId(roomInfo.roomId);
+            if (roomInfo.fen) {
+              setFen(roomInfo.fen);
+              game.setCurrentBoard(roomInfo.fen);
+            }
+            if (roomInfo.showBestMove) {
+              setShowBestMoves(roomInfo.showBestMove);
+              game.setShowBestMoves(roomInfo.showBestMove);
+              setBestMove(roomInfo.bestMove);
+            }
+            if (roomInfo.showWinBar) {
+              setShowWinBar(roomInfo.showWinBar);
+              game.setShowWinBar(roomInfo.showWinBar);
+              setWinChance(roomInfo.winBar);
+            }
+            if (roomInfo.isGameStarted) {
+              game.setIsGameStarted(true);
+            }
+            setTimeout(() => {
+              setIsLoading(false);
+            }, 500);
+          } else {
+            setRoom(roomInfo);
+            setOpponent(opponent);
+            setGame(
+              "playerVsPlayer",
+              player.color,
+              roomInfo.timers[player.color].overallTime
+            );
+            game.setRoomId(roomInfo.roomId);
+            game.setIsGameStarted(true);
+            setFen(roomInfo.fen);
+            startTimer();
+            setTimeout(() => {
+              setIsLoading(false);
+            }, 500);
+          }
+        }
+      );
+    }
+    return () => {
+      if (socket) {
+        socket.off("requestGameState");
+      }
+    };
+  }, [socket]);
 
   // 초기 방 정보
   useEffect(() => {
+    if (pathGameType === "computer") {
+      setGameType("playerVsComputer");
+    } else {
+      setGameType("playerVsPlayer");
+    }
     const handleGameStart = () => {
       setFen(game.getCurrentBoard());
       const roomId = game.getRoomId();
-      if (game.getGameMode() === "playerVsPlayer") {
+      setIsLoading(false);
+      if (game.getGameType() === "playerVsPlayer") {
         startTimer();
         socket.emit("getRoomInfo", roomId, (roomInfo: any) => {
           if (roomInfo) {
@@ -95,16 +149,17 @@ function ChessGame() {
                 return opponent ?? undefined;
               });
               if (player) {
-                setGame(gameMode);
+                setGame(gameType);
               } else {
                 console.error("User not authenticated");
               }
             }
           }
         });
-      } else if (roomId === "computer") {
-        setGameMode("playerVsComputer");
-        setGame("playerVsComputer", "white");
+      } else if (game.getGameType() === "playerVsComputer") {
+        if (game.getUserColor() === "black") {
+          computerMove();
+        }
       }
       playSound("start");
       setFen(game.getCurrentBoard());
@@ -132,18 +187,6 @@ function ChessGame() {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleComputerMove = (move: Move) => {
-      // soundPlayer.playMoveSound(move);
-      // if (move.captured) {
-      //   console.log(3);
-      //   const captureAudio = new Audio("/audios/capture.mp3");
-      //   captureAudio.play();
-      //   playMoveSound(move.san, true);
-      // } else {
-      //   console.log(4);
-      //   const moveAudio = new Audio("/audios/move.mp3");
-      //   moveAudio.play();
-      //   playMoveSound(move.san);
-      // }
       setFen(game.getCurrentBoard());
     };
 
@@ -177,46 +220,38 @@ function ChessGame() {
     const handleShowWinBar = () => {
       setShowWinBar(game.getShowWinBar());
     };
-    game.on("showWinBar", handleShowWinBar);
-
-    return () => {
-      game.off("showWinBar", handleShowWinBar);
-    };
-  }, [showWinBar, game]);
-
-  useEffect(() => {
     const handleShowBestMoves = async (state: any) => {
       setShowBestMoves(state);
       if (state) {
         if (game.getUserColor() === "black") {
           return;
         }
-        // await game.setBestMove();
         await game.setWinChanceAndBestMove();
         setBestMove(game.getBestMove());
       } else {
         setBestMove([]);
       }
     };
-    game.on("showBestMoves", handleShowBestMoves);
-
-    return () => {
-      game.off("showBestMoves", handleShowBestMoves);
-    };
-  }, [showBestMoves, bestMove, game]);
-
-  useEffect(() => {
     const handleBestMove = () => {
       console.log(game.getBestMove());
       setBestMove(game.getBestMove());
     };
+    const handleColorChange = (color: any) => {
+      setUserColor(color);
+    };
 
+    game.on("showWinBar", handleShowWinBar);
+    game.on("showBestMoves", handleShowBestMoves);
     game.on("bestMove", handleBestMove);
+    game.on("colorChange", handleColorChange);
 
     return () => {
+      game.off("showWinBar", handleShowWinBar);
+      game.off("showBestMoves", handleShowBestMoves);
       game.off("bestMove", handleBestMove);
+      game.off("colorChange", handleColorChange);
     };
-  });
+  }, [game]);
 
   // 체스말움직임
   function onDrop(sourceSquare: any, targetSquare: any) {
@@ -225,25 +260,24 @@ function ChessGame() {
       setDuration(300);
     }
     const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
-    if (game.getGameMode() === "playerVsComputer") {
+    if (game.getGameType() === "playerVsComputer") {
       if (game.makeMove(moveData)) {
-        // if (showWinBar) {
-        //   game.setWinChanceAndBestMove();
-        //   setWinChance(game.getWinChance());
-        // }
         setFen(game.getCurrentBoard());
         setCanMoveSquares({});
         game.setCurrentPieceSquare("");
         setBestMove([]);
-        (async () => {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const computerMove = await game.makeComputerMove();
-          if (showWinBar) {
-            setWinChance(game.getWinChance());
-          }
-          setFen(game.getCurrentBoard());
-          // setCurrentPice(null);
-        })();
+        socket.emit("computerModeMove", {
+          roomId: game.getRoomId(),
+          color: game.getCurrentPlayer(),
+          fen: game.getCurrentBoard(),
+          notation: game.getNotation(),
+          moveHistory: game.getLastHistory(),
+          moveRow: game.getMoveRow(),
+          moveIndex: game.getMoveIndex(),
+          bestMove: game.getBestMove(),
+          winBar: game.getWinChance(),
+        });
+        computerMove();
       } else {
         setCanMoveSquares({});
         game.setCurrentPieceSquare("");
@@ -263,13 +297,31 @@ function ChessGame() {
             fen: game.getCurrentBoard(),
           });
         }
-        // setCurrentPice(null);
         return true;
       }
     }
-
-    // setCurrentPice(null);
     return false;
+  }
+
+  // 컴퓨터가 움직인 후 소켓 이벤트를 보냄
+  async function computerMove() {
+    const computerMove = await game.makeComputerMove(); // 비동기 완료 후 진행
+    if (showWinBar) {
+      setWinChance(game.getWinChance());
+    }
+    setFen(game.getCurrentBoard());
+
+    socket.emit("computerModeMove", {
+      roomId: game.getRoomId(),
+      color: game.getCurrentPlayer(),
+      fen: game.getCurrentBoard(),
+      notation: game.getNotation(),
+      moveHistory: game.getLastHistory(),
+      moveRow: game.getMoveRow(),
+      moveIndex: game.getMoveIndex(),
+      bestMove: game.getBestMove(),
+      winBar: game.getWinChance(),
+    });
   }
 
   // 상대 움직임 반영
@@ -282,10 +334,8 @@ function ChessGame() {
 
   // 타이머 갱신
   const startTimer = () => {
-    console.log(game.getRoomId());
     if (!game) return;
     if (!game.getIsGameStarted()) return;
-    console.log(game.getRoomId());
 
     const interval = setInterval(() => {
       if (game) {
@@ -295,7 +345,6 @@ function ChessGame() {
           game.handleGameOver();
           clearInterval(interval);
         } else {
-          // setTimers(game.getTimers());
           socket.emit("getTimers", game.getRoomId(), ({ timers }: any) => {
             setTimers(timers);
           });
@@ -343,19 +392,25 @@ function ChessGame() {
       }`}
     >
       <div className="text-white flex justify-between items-center w-full mb-4">
-        {opponent ? (
-          <div className="flex text-sm gap-1">
-            <span>{opponent.username}</span>
-            <span className="text-gray-500">({opponent.rating})</span>
-          </div>
+        {gameType === "playerVsComputer" ? (
+          <div className="text-sm">컴퓨터</div>
         ) : (
-          <>상대</>
+          <>
+            {opponent ? (
+              <div className="flex text-sm gap-1">
+                <span>{opponent.username}</span>
+                <Rating rating={opponent.rating} />
+              </div>
+            ) : (
+              <div className="text-sm">상대</div>
+            )}
+          </>
         )}
-        {gameMode === "playerVsComputer" ? null : (
+        {gameType === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-neutral-700 p-2 px-4 rounded">
             <ClockIcon className="size-6" />
             <p>
-              {game.getUserColor() === "black"
+              {userColor === "black"
                 ? timeString(Number(msToSec(timers.white)))
                 : timeString(Number(msToSec(timers.black)))}
             </p>
@@ -363,18 +418,25 @@ function ChessGame() {
         )}
       </div>
       <div className="w-80 sm:w-[450px] md:w-[620px]">
-        <Chessboard
-          position={fen}
-          onPieceDrop={onDrop}
-          boardOrientation={game.getUserColor() === "white" ? "white" : "black"}
-          areArrowsAllowed={true}
-          onSquareClick={handleSquareClick}
-          onPieceClick={handlePieceClick}
-          customSquareStyles={canMoveSquares}
-          onPieceDragEnd={onPieceDragEnd}
-          animationDuration={duration}
-          customArrows={bestMove}
-        />
+        {isLoading ? (
+          <Chessboard
+            boardOrientation={userColor === "white" ? "white" : "black"}
+          />
+        ) : (
+          <Chessboard
+            position={fen}
+            onPieceDrop={onDrop}
+            boardOrientation={userColor === "white" ? "white" : "black"}
+            areArrowsAllowed={true}
+            onSquareClick={handleSquareClick}
+            onPieceClick={handlePieceClick}
+            customSquareStyles={canMoveSquares}
+            onPieceDragEnd={onPieceDragEnd}
+            animationDuration={duration}
+            customArrows={bestMove}
+          />
+        )}
+
         {showWinBar ? (
           <div className="w-full h-6 bg-gray-800 rounded-lg overflow-hidden flex border border-gray-600 mt-4">
             <div
@@ -392,15 +454,19 @@ function ChessGame() {
       <div className="text-white flex justify-between items-center w-full mt-4">
         <div className="flex text-sm gap-1">
           <span>{user.username}</span>
-          <span className="text-gray-500">
-            {room ? <>({user[`${room!.gameMode}Rating`]})</> : null}
-          </span>
+          {room ? (
+            <>
+              {gameType === "playerVsComputer" ? null : (
+                <Rating rating={user[`${room!.gameMode}Rating`] ?? 0} />
+              )}
+            </>
+          ) : null}
         </div>
-        {gameMode === "playerVsComputer" ? null : (
+        {gameType === "playerVsComputer" ? null : (
           <div className="flex gap-6 bg-white p-2 px-4 rounded text-black">
             <ClockIcon className="size-6" />
             <p>
-              {game.getUserColor() === "white"
+              {userColor === "white"
                 ? timeString(Number(msToSec(timers.white)))
                 : timeString(Number(msToSec(timers.black)))}
             </p>
