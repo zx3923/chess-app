@@ -9,17 +9,32 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { useChess } from "@/lib/context/ChessContext";
+import { socket } from "@/lib/socket";
+import { useUser } from "@/lib/context/UserContext";
+import { redirect } from "next/navigation";
 
 export default function NewPage() {
   const { game } = useChess();
+  const { user } = useUser();
   const [isGameOver, setIsGameOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedMove, setSelectedMove] = useState<number>(-1);
   const [notation, setNotation] = useState<
-    { moveNumber: number; whiteMove: string; blackMove: string }[]
+    { moveRow: number; whiteMove: string; blackMove: string }[]
   >([]);
 
   const [history, setHistory] = useState<Move[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+
+    return () => {
+      if (mounted) {
+        socket.emit("deleteRoom", user.username);
+      }
+    };
+  }, [mounted]);
 
   // 스크롤 액션
   useEffect(() => {
@@ -28,27 +43,45 @@ export default function NewPage() {
     }
   }, [notation]);
 
+  // 새로고침
+  useEffect(() => {
+    if (socket) {
+      socket.emit(
+        "requestNotation",
+        { username: user.username },
+        (notation: any, history: any, moveRow: any, moveIndex: any) => {
+          if (notation.error) {
+            return;
+          }
+          setNotation(notation);
+          game.setNotation(notation);
+          game.setMoveHistory(history);
+          game.setMoveRow(moveRow);
+          game.setMoveIndex(moveIndex);
+          setHistory(history);
+          setSelectedMove(moveIndex);
+          // setIsStarted(true);
+        }
+      );
+    }
+    return () => {
+      if (socket) {
+        socket.off("requestNotation");
+      }
+    };
+  }, [socket]);
+
   useEffect(() => {
     const handleGameOver = () => {
       setIsGameOver(true);
     };
 
     const handleMove = (move: any, history: Move[]) => {
-      setNotation((prev) => {
-        if (move.color === "w") {
-          const movedata = {
-            moveNumber: prev.length + 1,
-            whiteMove: move.san,
-            blackMove: "",
-          };
-          return [...prev, movedata];
-        } else {
-          const updated = [...prev];
-          updated[updated.length - 1].blackMove = move.san;
-          return updated;
-        }
-      });
-      setHistory(history);
+      setNotation([...game.getNotation()]);
+      const newMove = history.pop();
+      if (newMove) {
+        setHistory((prev) => [...prev, newMove]);
+      }
       setSelectedMove((prev) => prev + 1);
     };
 
@@ -61,19 +94,20 @@ export default function NewPage() {
     };
   }, [game]);
 
-  const handleRestartBtn = () => {
+  const handleNewGameBtn = () => {
     game.restartGame();
-    setIsGameOver(false);
-    setNotation([]);
+    // setIsGameOver(false);
+    // setNotation([]);
+    socket.emit("deleteRoom", user.username);
+    redirect("/play/online/new");
   };
 
   const handleSurrender = () => {
-    game.surrender();
+    game.surrender(game.getUserColor());
   };
 
   const handlePrevMove = () => {
     if (selectedMove === -1 || selectedMove === 0) return;
-    console.log(selectedMove);
     const prevMove = selectedMove - 1;
     setSelectedMove(prevMove);
     handleMoveClick(
@@ -84,7 +118,6 @@ export default function NewPage() {
 
   const handleNextMove = () => {
     if (selectedMove === -1 || selectedMove >= notation.length * 2 - 1) return;
-    console.log(selectedMove);
     const nextMove = selectedMove + 1;
     setSelectedMove(nextMove);
     handleMoveClick(
@@ -102,7 +135,7 @@ export default function NewPage() {
   };
 
   return (
-    <div className="bg-neutral-900 h-[700px] w-[300px] text-white max-[768px]:w-full rounded flex flex-col justify-center items-center gap-4 mt-24 max-[768px]:mt-0">
+    <div className="bg-neutral-900 min-h-[600px] w-[300px] text-white max-[768px]:w-full rounded flex flex-col justify-center items-center gap-4 mt-24 max-[768px]:mt-0">
       <div className="w-full max-w-md mx-auto p-4 bg-neutral-900 rounded-lg shadow text-white">
         <h2 className="text-xl font-bold mb-4 text-center">체스 기보</h2>
         <div className="rounded overflow-hidden">
@@ -129,7 +162,7 @@ export default function NewPage() {
                       index % 2 === 1 ? "bg-neutral-900" : "bg-neutral-700"
                     }
                   >
-                    <td className="py-2 px-4">{move.moveNumber}.</td>
+                    <td className="py-2 px-4">{move.moveRow}.</td>
                     <td className="py-2 px-4">
                       <span
                         className={`hover:cursor-pointer ${
@@ -187,9 +220,9 @@ export default function NewPage() {
         <>
           <button
             className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"
-            onClick={handleRestartBtn}
+            onClick={handleNewGameBtn}
           >
-            재대결
+            새로운 게임
           </button>
         </>
       ) : null}

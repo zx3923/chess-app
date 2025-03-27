@@ -87,8 +87,9 @@ class Game extends EventEmitter {
     }
   }
 
-  public surrender(): void {
+  public surrender(userColor: Player): void {
     this.isSurrender = true;
+    this.winner = userColor === "white" ? "black" : "white";
     this.handleGameOver();
   }
 
@@ -125,6 +126,7 @@ class Game extends EventEmitter {
           this.updateNotation(result);
           this.addMoveHistory(this.getLastHistory());
           this.moveIndex++;
+          console.log(this.chess.history({ verbose: true }));
           this.emit("move", result, this.chess.history({ verbose: true }));
           this.timers[this.currentPlayer].stop(); // 현재 플레이어의 타이머 정지
           this.switchPlayer();
@@ -149,7 +151,7 @@ class Game extends EventEmitter {
         return false;
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
-        // console.error(e);
+        console.error(e);
         return false;
       }
     }
@@ -195,7 +197,7 @@ class Game extends EventEmitter {
     this.gameDuration.stop();
     this.stop(); // Stop the game when it's over
     if (this.isSurrender) {
-      this.winner = this.currentPlayer === "white" ? "black" : "white";
+      // this.winner = this.currentPlayer === "white" ? "black" : "white";
     } else {
       if (this.chess.isCheckmate()) {
         console.log(
@@ -208,10 +210,11 @@ class Game extends EventEmitter {
         this.winner = "draw";
         console.log("Draw");
       } else {
+        console.log(this.winner);
         console.log("Game over");
       }
     }
-    this.emit("gameOver", this.chess.isCheckmate());
+    this.emit("gameOver", this.chess.isCheckmate(), this.winner);
   }
 
   public updateNotation(move: any) {
@@ -255,7 +258,6 @@ class Game extends EventEmitter {
     if (!this.isGameStarted) {
       this.gameInit();
     }
-    this.play();
   }
 
   public gameInit(): void {
@@ -369,6 +371,9 @@ class Game extends EventEmitter {
   }
 
   public addMoveHistory(history: any) {
+    // console.log(history);
+    // console.log(this.moveHistory);
+    // console.log(this.moveHistory.length);
     this.moveHistory = [...this.moveHistory, history];
   }
 
@@ -408,6 +413,10 @@ class Game extends EventEmitter {
     return this.winner;
   }
 
+  public setWinner(winner: Player) {
+    this.winner = winner;
+  }
+
   public getShowBestMoves(): boolean {
     return this.showBestMoves;
   }
@@ -441,7 +450,6 @@ class Game extends EventEmitter {
         maxThinkingTime: 100,
         variants: 5,
       });
-      console.log(data);
       this.winChance = Number(data.winChance);
       this.bestMove = [[data.from, data.to, "#9fcf38"]];
     }

@@ -88,7 +88,7 @@ export default function PlayNew() {
     },
   ];
   return (
-    <div className="bg-neutral-900 h-[700px] w-[300px] text-white max-[768px]:w-full rounded flex flex-col justify-center items-center gap-4 mt-24 max-[768px]:mt-0">
+    <div className="bg-neutral-900 min-h-[600px] w-[300px] text-white max-[768px]:w-full rounded flex flex-col justify-center items-center gap-4 mt-24 max-[768px]:mt-0">
       {isMatching ? (
         <div className="bg-neutral-800 p-12 rounded-lg shadow-lg flex flex-col items-center">
           <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />

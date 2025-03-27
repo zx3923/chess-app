@@ -15,7 +15,7 @@ import { msToSec, timeString } from "@/lib/timer";
 import { useUser } from "@/lib/context/UserContext";
 import { useMenu } from "@/lib/context/MenuContext";
 import { useChess } from "@/lib/context/ChessContext";
-import { useSearchParams } from "next/navigation";
+import { redirect, useSearchParams } from "next/navigation";
 
 interface Player {
   id: string;
@@ -61,6 +61,18 @@ function ChessGame() {
 
   useEffect(() => {
     if (socket) {
+      socket.on("roomGameOver", (winner) => {
+        setIsGameOver(true);
+        game.setWinner(winner);
+      });
+    }
+    return () => {
+      socket.off("roomGameOver");
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    if (socket) {
       socket.emit(
         "requestGameState",
         { username: user.username, socketId: socket.id },
@@ -96,6 +108,22 @@ function ChessGame() {
               setIsLoading(false);
             }, 500);
           } else {
+            if (roomInfo.error) {
+              redirect("/play/online/new");
+            }
+            console.log(roomInfo);
+            // if (roomInfo.game.isGameOver) {
+            //   socket.emit("deleteRoom", user.username);
+            //   redirect("/play/online/new");
+            // }
+            setUserColor(player.color);
+            game.setUserColor(player.color);
+            game.setCurrentPlayer(roomInfo.currentTurn);
+            setRoom(roomInfo);
+            if (roomInfo.fen) {
+              setFen(roomInfo.fen);
+              game.setCurrentBoard(roomInfo.fen);
+            }
             setRoom(roomInfo);
             setOpponent(opponent);
             setGame(
@@ -105,11 +133,11 @@ function ChessGame() {
             );
             game.setRoomId(roomInfo.roomId);
             game.setIsGameStarted(true);
-            setFen(roomInfo.fen);
             startTimer();
             setTimeout(() => {
               setIsLoading(false);
             }, 500);
+            redirect(`/play/online/new/${roomInfo.roomId}`);
           }
         }
       );
@@ -169,11 +197,11 @@ function ChessGame() {
       }
     };
 
-    const handleGameOver = (isCheckmate: boolean) => {
+    const handleGameOver = (isCheckmate: boolean, winner: any) => {
       if (!isCheckmate) {
         playSound("gameover");
       }
-      socket.emit("gameover", game.getRoomId());
+      socket.emit("gameover", game.getRoomId(), winner);
       setIsGameOver(true);
     };
 
@@ -284,7 +312,10 @@ function ChessGame() {
       }
       return true;
     } else {
+      console.log(1);
       if (game.makeMove(moveData)) {
+        console.log(moveData);
+        console.log(game.getCurrentBoard());
         setFen(game.getCurrentBoard());
         setCanMoveSquares({});
         game.setCurrentPieceSquare("");
@@ -295,6 +326,10 @@ function ChessGame() {
             room: roomId,
             color: game.getCurrentPlayer(),
             fen: game.getCurrentBoard(),
+            notation: game.getNotation(),
+            moveHistory: game.getLastHistory(),
+            moveRow: game.getMoveRow(),
+            moveIndex: game.getMoveIndex(),
           });
         }
         return true;
@@ -347,11 +382,14 @@ function ChessGame() {
           clearInterval(interval);
         } else {
           socket.emit("getTimers", game.getRoomId(), ({ timers }: any) => {
+            if (!timers) {
+              clearInterval(interval);
+            }
             setTimers(timers);
           });
         }
       }
-    }, 200);
+    }, 1000);
 
     return () => clearInterval(interval);
   };
@@ -412,8 +450,8 @@ function ChessGame() {
             <ClockIcon className="size-6" />
             <p>
               {userColor === "black"
-                ? timeString(Number(msToSec(timers.white)))
-                : timeString(Number(msToSec(timers.black)))}
+                ? timeString(Number(msToSec(timers?.white ?? 0)))
+                : timeString(Number(msToSec(timers?.black ?? 0)))}
             </p>
           </div>
         )}
@@ -468,8 +506,8 @@ function ChessGame() {
             <ClockIcon className="size-6" />
             <p>
               {userColor === "white"
-                ? timeString(Number(msToSec(timers.white)))
-                : timeString(Number(msToSec(timers.black)))}
+                ? timeString(Number(msToSec(timers?.white ?? 0)))
+                : timeString(Number(msToSec(timers?.black ?? 0)))}
             </p>
           </div>
         )}

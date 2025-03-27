@@ -79,6 +79,12 @@ app.prepare().then(() => {
           lastMoveTime: Date.now(),
           currentTurn: "white",
           gameMode,
+          notation: [],
+          moveHistory: [],
+          moveRow: -1,
+          moveIndex: -1,
+          isGameOver: false,
+          winner: "",
           fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         });
 
@@ -216,6 +222,10 @@ app.prepare().then(() => {
       room.currentTurn = color;
       room.timers[room.currentTurn].start();
       room.fen = data.fen;
+      room.notation = data.notation;
+      room.moveHistory = [...room.moveHistory, data.moveHistory];
+      room.moveRow = data.moveRow;
+      room.moveIndex = data.moveIndex;
       socket.to(data.room).emit("move", data.move);
     });
 
@@ -223,7 +233,6 @@ app.prepare().then(() => {
     socket.on("computerModeMove", (data) => {
       const room = rooms.get(data.roomId);
       if (!room) return;
-      console.log(data.moveIndex);
       room.fen = data.fen;
       room.currentTurn = data.color;
       room.notation = data.notation;
@@ -244,31 +253,22 @@ app.prepare().then(() => {
     socket.on("getTimers", (roomId, callback) => {
       const room = rooms.get(roomId);
       if (!room) return callback({ error: "Room not found" });
-
-      // const now = Date.now();
-      // const elapsedTime = (now - room.lastMoveTime) / 1000; // 경과 시간 (초 단위)
-      // const timers = { ...room.timers };
+      console.log(room);
       const timers = {
         white: room.timers.white.getTime(),
         black: room.timers.black.getTime(),
       };
-      // timers[room.currentTurn] -= elapsedTime;
-
-      // if (room.timers[room.currentTurn] <= 0) {
-      // io.to(room.roomId).emit("gameOver", {
-      // winner: room.currentTurn === "white" ? "black" : "white",
-      // reason: "timeout",
-      // });
-      // rooms.delete(room.roomId);
-      // return;
-      // }
-
       callback({ timers });
     });
 
     // 게임종료
-    socket.on("gameover", (roomId) => {
-      rooms.delete(roomId);
+    socket.on("gameover", (roomId, winner) => {
+      const room = rooms.get(roomId);
+      if (!room) return callback({ error: "Room not found" });
+
+      room.winner = winner;
+      io.in(roomId).emit("roomGameOver", room.winner);
+      // rooms.delete(roomId);
       console.log(`${roomId} delete`);
     });
 
