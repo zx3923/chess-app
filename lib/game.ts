@@ -94,7 +94,7 @@ class Game extends EventEmitter {
   }
 
   // 체스 말 움직임
-  public makeMove(move: Move): boolean {
+  public makeMove(move: Move) {
     if (!this.isGameStarted || this.isGameOver) {
       return false;
     }
@@ -112,12 +112,12 @@ class Game extends EventEmitter {
           if (this.chess.isGameOver()) {
             this.handleGameOver();
           }
-          return true;
+          return { success: true, move: result };
         } else {
-          return false;
+          return { success: false };
         }
       } catch {
-        return false;
+        return { success: false };
       }
     } else {
       try {
@@ -126,8 +126,7 @@ class Game extends EventEmitter {
           this.updateNotation(result);
           this.addMoveHistory(this.getLastHistory());
           this.moveIndex++;
-          console.log(this.chess.history({ verbose: true }));
-          this.emit("move", result, this.chess.history({ verbose: true }));
+          // this.emit("move", result, this.chess.history({ verbose: true }));
           this.timers[this.currentPlayer].stop(); // 현재 플레이어의 타이머 정지
           this.switchPlayer();
           this.timers[this.currentPlayer].start(); // 다음 플레이어의 타이머 시작
@@ -146,13 +145,13 @@ class Game extends EventEmitter {
               console.log("Game over");
             }
           }
-          return true;
+          return { success: true, move: result };
         }
-        return false;
+        return { success: false };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         console.error(e);
-        return false;
+        return { success: false };
       }
     }
   }

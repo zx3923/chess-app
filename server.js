@@ -253,7 +253,6 @@ app.prepare().then(() => {
     socket.on("getTimers", (roomId, callback) => {
       const room = rooms.get(roomId);
       if (!room) return callback({ error: "Room not found" });
-      console.log(room);
       const timers = {
         white: room.timers.white.getTime(),
         black: room.timers.black.getTime(),

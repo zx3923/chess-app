@@ -289,7 +289,9 @@ function ChessGame() {
     }
     const moveData = { from: sourceSquare, to: targetSquare, promotion: "q" };
     if (game.getGameType() === "playerVsComputer") {
-      if (game.makeMove(moveData)) {
+      const data = game.makeMove(moveData);
+      if (!data) return false;
+      if (data.success) {
         setFen(game.getCurrentBoard());
         setCanMoveSquares({});
         game.setCurrentPieceSquare("");
@@ -313,16 +315,16 @@ function ChessGame() {
       return true;
     } else {
       console.log(1);
-      if (game.makeMove(moveData)) {
-        console.log(moveData);
-        console.log(game.getCurrentBoard());
+      const data = game.makeMove(moveData);
+      if (!data) return false;
+      if (data.success) {
         setFen(game.getCurrentBoard());
         setCanMoveSquares({});
         game.setCurrentPieceSquare("");
         const roomId = game.getRoomId();
         if (roomId) {
           socket.emit("move", {
-            move: moveData,
+            move: data.move,
             room: roomId,
             color: game.getCurrentPlayer(),
             fen: game.getCurrentBoard(),
@@ -363,7 +365,13 @@ function ChessGame() {
   // 상대 움직임 반영
   useEffect(() => {
     socket.on("move", (move) => {
-      game.makeMove(move);
+      const moveData = { from: move.from, to: move.to, promotion: "q" };
+      game.makeMove(moveData);
+      if (move.captured) {
+        playSound(move.san, true);
+      } else {
+        playSound(move.san);
+      }
       setFen(game.getCurrentBoard());
     });
   }, [game]);
