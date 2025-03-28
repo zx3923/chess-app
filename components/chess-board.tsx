@@ -365,16 +365,23 @@ function ChessGame() {
 
   // 상대 움직임 반영
   useEffect(() => {
-    socket.on("move", (move) => {
-      const moveData = { from: move.from, to: move.to, promotion: "q" };
-      game.makeMove(moveData);
-      setFen(game.getCurrentBoard());
-      if (move.captured) {
-        playSound(move.san, true);
-      } else {
-        playSound(move.san);
+    if (socket) {
+      socket.on("move", (move) => {
+        const moveData = { from: move.from, to: move.to };
+        game.makeMove(moveData);
+        setFen(game.getCurrentBoard());
+        if (move.captured) {
+          playSound(move.san, true);
+        } else {
+          playSound(move.san);
+        }
+      });
+    }
+    return () => {
+      if (socket) {
+        socket.off("move");
       }
-    });
+    };
   }, [game]);
 
   // 타이머 갱신

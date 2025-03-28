@@ -226,6 +226,7 @@ app.prepare().then(() => {
       room.moveHistory = [...room.moveHistory, data.moveHistory];
       room.moveRow = data.moveRow;
       room.moveIndex = data.moveIndex;
+      console.log("server move");
       socket.to(data.room).emit("move", data.move);
     });
 
