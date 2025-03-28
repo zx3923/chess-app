@@ -16,6 +16,7 @@ import { redirect } from "next/navigation";
 export default function NewPage() {
   const { game } = useChess();
   const { user } = useUser();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isGameOver, setIsGameOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedMove, setSelectedMove] = useState<number>(-1);

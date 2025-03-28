@@ -67,6 +67,7 @@ function ChessGame() {
 
   useEffect(() => {
     if (socket) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       socket.on("roomGameOver", (winner, totalTime) => {
         console.log("chessboardpage");
         setIsGameOver(true);
