@@ -150,7 +150,7 @@ export default function PlayComputer() {
   };
 
   const handleSurrender = () => {
-    game.surrender();
+    game.surrender(game.getUserColor());
   };
 
   const handlePrevMove = () => {
