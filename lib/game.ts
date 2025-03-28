@@ -50,7 +50,7 @@ class Game extends EventEmitter {
     this.isGameOver = false;
     this.isGameStarted = false;
     this.currentPiece = "";
-    this.winner = "";
+    this.winner = "black";
     this.isSurrender = false;
     this.moveHistory = [];
     this.gameDuration = new Timer(0);
@@ -107,7 +107,11 @@ class Game extends EventEmitter {
           this.addMoveHistory(this.getLastHistory());
           this.moveIndex++;
           // soundPlayer.playMoveSound(result);
-          this.emit("move", result, this.chess.history({ verbose: true }));
+          this.emit(
+            "computerModeSound",
+            result,
+            this.chess.history({ verbose: true })
+          );
           this.switchPlayer();
           if (this.chess.isGameOver()) {
             this.handleGameOver();
@@ -126,7 +130,11 @@ class Game extends EventEmitter {
           this.updateNotation(result);
           this.addMoveHistory(this.getLastHistory());
           this.moveIndex++;
-          // this.emit("move", result, this.chess.history({ verbose: true }));
+          this.emit(
+            "updateNotation",
+            result,
+            this.chess.history({ verbose: true })
+          );
           this.timers[this.currentPlayer].stop(); // 현재 플레이어의 타이머 정지
           this.switchPlayer();
           this.timers[this.currentPlayer].start(); // 다음 플레이어의 타이머 시작
@@ -209,10 +217,10 @@ class Game extends EventEmitter {
         this.winner = "draw";
         console.log("Draw");
       } else {
-        console.log(this.winner);
         console.log("Game over");
       }
     }
+    console.log("check hanlde game over");
     this.emit("gameOver", this.chess.isCheckmate(), this.winner);
   }
 
@@ -413,6 +421,8 @@ class Game extends EventEmitter {
   }
 
   public setWinner(winner: Player) {
+    console.log(winner);
+    console.log(this.winner);
     this.winner = winner;
   }
 

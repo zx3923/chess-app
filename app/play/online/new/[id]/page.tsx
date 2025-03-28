@@ -53,6 +53,7 @@ export default function NewPage() {
           if (notation.error) {
             return;
           }
+          console.log(notation);
           setNotation(notation);
           game.setNotation(notation);
           game.setMoveHistory(history);
@@ -77,6 +78,7 @@ export default function NewPage() {
     };
 
     const handleMove = (move: any, history: Move[]) => {
+      console.log(game.getNotation());
       setNotation([...game.getNotation()]);
       const newMove = history.pop();
       if (newMove) {
@@ -86,11 +88,11 @@ export default function NewPage() {
     };
 
     game.on("gameOver", handleGameOver);
-    game.on("move", handleMove);
+    game.on("updateNotation", handleMove);
 
     return () => {
       game.off("gameOver", handleGameOver);
-      game.off("move", handleMove);
+      game.off("updateNotation", handleMove);
     };
   }, [game]);
 
@@ -216,7 +218,7 @@ export default function NewPage() {
           </button>
         </div>
       </div>
-      {isGameOver ? (
+      {game.getIsGameOver() ? (
         <>
           <button
             className="text-white bg-purple-500 w-11/12 rounded hover:bg-purple-700 p-4"

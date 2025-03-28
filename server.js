@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import next from "next";
 import { Server } from "socket.io";
 import { v4 as uuidv4 } from "uuid";
-import Timer from "./lib/timer.js";
+import Timer, { timeString } from "./lib/timer.js";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -76,7 +76,7 @@ app.prepare().then(() => {
             black: new Timer(initialTime),
           },
           gameType,
-          lastMoveTime: Date.now(),
+          startTime: Date.now(),
           currentTurn: "white",
           gameMode,
           notation: [],
@@ -84,7 +84,7 @@ app.prepare().then(() => {
           moveRow: -1,
           moveIndex: -1,
           isGameOver: false,
-          winner: "",
+          winner: "black",
           fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         });
 
@@ -254,11 +254,28 @@ app.prepare().then(() => {
     socket.on("getTimers", (roomId, callback) => {
       const room = rooms.get(roomId);
       if (!room) return callback({ error: "Room not found" });
+      let winner = null;
       const timers = {
         white: room.timers.white.getTime(),
         black: room.timers.black.getTime(),
       };
-      callback({ timers });
+      if (room.timers.white.getTime() <= 0) {
+        console.log(room.timers.white.getTime());
+        winner = "black";
+        room.winner = "black";
+        console.log("whitetime");
+        room.timers.white.stop();
+        room.timers.black.stop();
+      }
+      if (room.timers.black.getTime() <= 0) {
+        console.log(room.timers.black.getTime());
+        console.log("blacktime");
+        winner = "white";
+        room.winner = "white";
+        room.timers.white.stop();
+        room.timers.black.stop();
+      }
+      callback({ timers, winner });
     });
 
     // 게임종료
@@ -266,9 +283,13 @@ app.prepare().then(() => {
       const room = rooms.get(roomId);
       if (!room) return callback({ error: "Room not found" });
 
+      const endTime = Date.now();
       room.winner = winner;
+      console.log(3, winner);
+      const totalTime = timeString((endTime - room.startTime) / 1000);
+      console.log(totalTime);
       console.log(roomId, "    ", winner);
-      io.in(roomId).emit("roomGameOver", room.winner);
+      io.in(roomId).emit("roomGameOver", room.winner, totalTime);
       // rooms.delete(roomId);
       console.log(`${roomId} delete`);
     });

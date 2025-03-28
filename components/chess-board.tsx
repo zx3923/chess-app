@@ -3,7 +3,7 @@
 import { Move } from "chess.js";
 import { socket } from "@/lib/socket";
 import { Chessboard } from "react-chessboard";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { ClockIcon } from "@heroicons/react/24/outline";
 
 import "./chess-board.css";
@@ -59,10 +59,16 @@ function ChessGame() {
   const whiteAdvantage = Math.min(Math.max(winChance, 0), 100); // 0~100 제한
   const blackAdvantage = 100 - whiteAdvantage;
 
+  const isGameOverRef = useRef(isGameOver);
+
+  useEffect(() => {
+    isGameOverRef.current = isGameOver;
+  }, [isGameOver]);
+
   useEffect(() => {
     if (socket) {
-      socket.on("roomGameOver", (winner) => {
-        console.log(winner);
+      socket.on("roomGameOver", (winner, totalTime) => {
+        console.log("chessboardpage");
         setIsGameOver(true);
         game.setWinner(winner);
       });
@@ -202,8 +208,9 @@ function ChessGame() {
       if (!isCheckmate) {
         playSound("gameover");
       }
+      console.log(game.getIsGameOver());
       socket.emit("gameover", game.getRoomId(), winner);
-      setIsGameOver(true);
+      // setIsGameOver(true);
     };
 
     const handleMove = (move: Move) => {
@@ -231,7 +238,7 @@ function ChessGame() {
     game.on("gameOver", handleGameOver); // 이벤트 리스너 등록
     game.on("computerMove", handleComputerMove);
     game.on("gameStart", handleGameStart);
-    game.on("move", handleMove);
+    game.on("computerModeSound", handleMove);
     game.on("reload", handleReload);
     game.on("gameType", handleGameType);
 
@@ -239,7 +246,7 @@ function ChessGame() {
       game.off("gameOver", handleGameOver); // 클린업
       game.off("computerMove", handleMove);
       game.off("gameStart", handleGameStart);
-      game.off("move", handleMove);
+      game.off("computerModeSound", handleMove);
       game.off("reload", handleReload);
       game.off("gameType", handleGameType);
     };
@@ -315,7 +322,6 @@ function ChessGame() {
       }
       return true;
     } else {
-      console.log(1);
       const data = game.makeMove(moveData);
       if (!data) return false;
       if (data.success) {
@@ -391,19 +397,29 @@ function ChessGame() {
 
     const interval = setInterval(() => {
       if (game) {
-        const timeoutPlayer = game.checkTimeout();
-        if (timeoutPlayer) {
-          setOver(true);
-          game.handleGameOver();
+        // const timeoutPlayer = game.checkTimeout();
+        if (isGameOverRef.current) {
           clearInterval(interval);
-        } else {
-          socket.emit("getTimers", game.getRoomId(), ({ timers }: any) => {
+        }
+        // if (timeoutPlayer) {
+        // } else {
+        socket.emit(
+          "getTimers",
+          game.getRoomId(),
+          ({ timers, winner }: any) => {
+            if (winner) {
+              setOver(true);
+              clearInterval(interval);
+              game.setWinner(winner);
+              game.handleGameOver();
+            }
             if (!timers) {
               clearInterval(interval);
             }
             setTimers(timers);
-          });
-        }
+          }
+        );
+        // }
       }
     }, 1000);
 
