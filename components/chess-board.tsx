@@ -62,6 +62,7 @@ function ChessGame() {
   useEffect(() => {
     if (socket) {
       socket.on("roomGameOver", (winner) => {
+        console.log(winner);
         setIsGameOver(true);
         game.setWinner(winner);
       });
@@ -367,12 +368,12 @@ function ChessGame() {
     socket.on("move", (move) => {
       const moveData = { from: move.from, to: move.to, promotion: "q" };
       game.makeMove(moveData);
+      setFen(game.getCurrentBoard());
       if (move.captured) {
         playSound(move.san, true);
       } else {
         playSound(move.san);
       }
-      setFen(game.getCurrentBoard());
     });
   }, [game]);
 

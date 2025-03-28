@@ -266,6 +266,7 @@ app.prepare().then(() => {
       if (!room) return callback({ error: "Room not found" });
 
       room.winner = winner;
+      console.log(roomId, "    ", winner);
       io.in(roomId).emit("roomGameOver", room.winner);
       // rooms.delete(roomId);
       console.log(`${roomId} delete`);
