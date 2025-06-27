@@ -35,7 +35,7 @@ export default function GameResultModal({
               </div>
               <div className="ml-3">
                 <p className="font-semibold text-white">
-                  {game.getUserColor() === "white" ? "You (White)" : "Opponent"}
+                  {game.getUserColor() === "white" ? "You" : "Opponent"}
                 </p>
                 <p className="text-sm text-neutral-400">Rating: 1250</p>
               </div>
@@ -57,7 +57,7 @@ export default function GameResultModal({
               <div className="ml-3">
                 <p className="font-semibold text-white">
                   {" "}
-                  {game.getUserColor() === "black" ? "You (White)" : "Opponent"}
+                  {game.getUserColor() === "black" ? "You" : "Opponent"}
                 </p>
                 <p className="text-sm text-neutral-400">Rating: 1235</p>
               </div>

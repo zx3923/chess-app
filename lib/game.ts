@@ -105,6 +105,7 @@ class Game extends EventEmitter {
         if (result) {
           this.updateNotation(result);
           this.addMoveHistory(this.getLastHistory());
+          this.emit("move", result, this.chess.history({ verbose: true }));
           this.moveIndex++;
           // soundPlayer.playMoveSound(result);
           this.emit(
@@ -182,6 +183,11 @@ class Game extends EventEmitter {
       this.moveIndex++;
       this.emit("computerMove", move);
       this.emit("move", move, this.chess.history({ verbose: true }));
+      this.emit(
+        "computerModeSound",
+        move,
+        this.chess.history({ verbose: true })
+      );
       this.switchPlayer();
     }
     if (this.showWinBar) {
